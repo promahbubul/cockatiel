@@ -9,14 +9,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Camera, Bell, Shield, ChevronRight, Info, HeartHandshake } from 'lucide-react-native';
+import { Camera, Bell, Shield, ChevronRight, Info, HeartHandshake, LogOut } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { CURRENT_USER } from '../../src/constants/mockData';
 import { useAuth } from '../../src/context/AuthContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/auth/welcome');
+  };
 
   const displayName = user?.displayName || CURRENT_USER.name;
   const phoneNumber = user?.phoneNumber || CURRENT_USER.phone;
@@ -128,6 +133,26 @@ export default function ProfileScreen() {
                 <Text style={styles.menuSubtitle}>Buy me a coffee & social links</Text>
               </View>
               <ChevronRight size={18} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* LOGOUT Section */}
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={handleLogout}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIconContainer, { backgroundColor: '#FEE2E2' }]}>
+                <LogOut size={20} color="#EF4444" />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={[styles.menuTitle, { color: '#EF4444' }]}>Log Out</Text>
+                <Text style={styles.menuSubtitle}>Sign out of your Cockatiel account</Text>
+              </View>
+              <ChevronRight size={18} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </View>

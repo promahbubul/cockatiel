@@ -12,11 +12,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, ArrowRight, RotateCw } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function OtpScreen() {
   const router = useRouter();
   const { phone } = useLocalSearchParams();
+  const { login } = useAuth();
   const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [loading, setLoading] = useState(false);
   const inputRefs = useRef<any[]>([]);
 
   const handleTextChange = (text: string, index: number) => {
@@ -37,8 +40,19 @@ export default function OtpScreen() {
 
   const isComplete = code.every((digit) => digit.length > 0);
 
-  const handleVerify = () => {
-    router.push('/auth/setup-profile');
+  const handleVerify = async () => {
+    if (!isComplete) return;
+    setLoading(true);
+    const pin = code.join('');
+    const rawPhone = String(phone || '+15550001234').replace(/[^0-9+]/g, '');
+
+    const success = await login(rawPhone || '+15550001234', pin);
+    setLoading(false);
+    if (success) {
+      router.replace('/(tabs)');
+    } else {
+      router.push('/auth/setup-profile');
+    }
   };
 
   return (
