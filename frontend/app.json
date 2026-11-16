@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Cockatiel",
+    "slug": "cockatiel",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "cockatiel"
+  }
+}

@@ -77,87 +77,73 @@ cockatiel/
 
 ### Backend (`backend/`):
 - **Runtime & Server:** **Node.js + Express.js (TypeScript)**
-- **Real-time Engine:** **Socket.IO** (WebSockets with automatic polling fallback, presence rooms, and acknowledgment callbacks).
-- **Database:** **PostgreSQL** (Hosted locally or via Supabase / Neon / Railway).
-- **ORM:** **Prisma ORM** (Type-safe models, clean migrations, and relations).
+- **Real-time Engine:** **Socket.IO** (WebSockets with presence rooms, typing indicators, and acknowledgment callbacks).
+- **Database:** **MongoDB** (Hosted on MongoDB Atlas M0 Free Tier / Local MongoDB).
+- **ODM / Driver:** **Mongoose / Prisma (MongoDB connector)** for type-safe document models and validations.
 - **In-Memory Cache / PubSub:** **Redis** (Used for user online/offline presence tracking, typing indicators, and horizontal scaling).
 - **Authentication:** **JWT (JSON Web Tokens)** + Refresh Token rotation, phone/email login.
-- **Media Storage:** **Cloudinary** or **AWS S3 / Supabase Storage** for profile pictures and media messages.
+- **Media Storage:** **Cloudinary** (25 monthly credits, ideal for chat media and profile pictures).
 - **Push Notifications:** **Firebase Cloud Messaging (FCM)** / **Expo Push Notification Service**.
 
 ---
 
-## 3. Database Schema Blueprint (Prisma)
+## 3. Database Schema Blueprint (MongoDB / Mongoose)
 
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+```typescript
+// 1. User Schema
+const UserSchema = new Schema({
+  phoneNumber: { type: String, required: true, unique: true },
+  username: { type: String, sparse: true, unique: true },
+  displayName: { type: String, required: true },
+  avatarUrl: { type: String, default: null },
+  about: { type: String, default: "Living life one bubble at a time..." },
+  isOnline: { type: Boolean, default: false },
+  lastSeen: { type: Date, default: Date.now },
+  contacts: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+}, { timestamps: true });
 
-generator client {
-  provider = "prisma-client-js"
-}
+// 2. Chat / Conversation Schema
+const ChatSchema = new Schema({
+  isGroup: { type: Boolean, default: false },
+  groupName: { type: String, default: null },
+  groupAvatar: { type: String, default: null },
+  participants: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  admins: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  lastMessage: {
+    text: String,
+    senderId: { type: Schema.Types.ObjectId, ref: 'User' },
+    timestamp: { type: Date, default: Date.now },
+  },
+  unreadCounts: { type: Map, of: Number, default: {} },
+}, { timestamps: true });
 
-model User {
-  id            String    @id @default(uuid())
-  phoneNumber   String    @unique
-  username      String?   @unique
-  displayName   String
-  avatarUrl     String?
-  about         String?   @default("Available")
-  isOnline      Boolean   @default(false)
-  lastSeen      DateTime  @default(now())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+// 3. Message Schema
+const MessageSchema = new Schema({
+  chatId: { type: Schema.Types.ObjectId, ref: 'Chat', required: true, index: true },
+  senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  content: { type: String, default: null },
+  mediaUrl: { type: String, default: null },
+  mediaType: { type: String, enum: ['IMAGE', 'VIDEO', 'AUDIO', null], default: null },
+  status: { type: String, enum: ['SENT', 'DELIVERED', 'READ'], default: 'SENT' },
+  reactions: [
+    {
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
+      emoji: { type: String, required: true },
+      createdAt: { type: Date, default: Date.now },
+    }
+  ],
+  readBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+}, { timestamps: true });
 
-  contacts      Contact[] @relation("UserContacts")
-  chatMembers   ChatParticipant[]
-  messages      Message[]
-  reactions     MessageReaction[]
-  outgoingCalls CallLog[] @relation("Caller")
-  incomingCalls CallLog[] @relation("Receiver")
-}
-
-model Contact {
-  id            String   @id @default(uuid())
-  userId        String
-  contactUserId String
-  nickname      String?
-  createdAt     DateTime @default(now())
-
-  user          User     @relation("UserContacts", fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Chat {
-  id            String            @id @default(uuid())
-  isGroup       Boolean           @default(false)
-  groupName     String?
-  groupAvatar   String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-
-  participants  ChatParticipant[]
-  messages      Message[]
-}
-
-model ChatParticipant {
-  id            String    @id @default(uuid())
-  chatId        String
-  userId        String
-  role          String    @default("MEMBER") // ADMIN | MEMBER
-  unreadCount   Int       @default(0)
-  lastReadAt    DateTime  @default(now())
-
-  chat          Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([chatId, userId])
-}
-
-model Message {
-  id            String            @id @default(uuid())
-  chatId        String
+// 4. Call Log Schema
+const CallLogSchema = new Schema({
+  callerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  receiverId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  callType: { type: String, enum: ['audio', 'video'], required: true },
+  direction: { type: String, enum: ['incoming', 'outgoing', 'missed'], required: true },
+  duration: { type: String, default: null }, // e.g. "2m 14s"
+}, { timestamps: true });
+```
   senderId      String
   content       String?
   mediaUrl      String?
