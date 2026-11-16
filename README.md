@@ -1,12 +1,12 @@
 # 🦜 Cockatiel
 
-A modern, high-performance real-time messaging and voice/video calling mobile application built with **React Native (Expo New Architecture)** and **Node.js (Fastify + Mongoose 8 + Socket.IO)**.
+A modern, high-performance real-time messaging and voice/video calling mobile application built with **React Native (Expo SDK 58 + React 19 + New Architecture)** and **Node.js (Fastify + Mongoose 8 + Socket.IO)**.
 
 ## 📁 Project Structure
 
 ```
 cockatiel/
-├── frontend/             # React Native (Expo SDK 52+, New Architecture) mobile app
+├── frontend/             # React Native (Expo SDK 58, React 19, RN 0.88) mobile app
 ├── backend/              # Node.js + Fastify + Mongoose 8 + Socket.IO server
 ├── resources/            # Design mockups, UI screenshots, and specifications
 ├── PLANNING.md           # Master architecture and technical planning document
@@ -16,8 +16,9 @@ cockatiel/
 ## 🚀 Cutting-Edge Technology Stack
 
 - **Frontend:**
-  - React Native (Expo SDK 52) with **New Architecture (Bridgeless Mode)**
-  - Expo Router v4 (Typed file-based navigation)
+  - React Native **0.88.1** with **Expo SDK 58**
+  - **React 19**
+  - Expo Router v58 (Typed file-based navigation)
   - TypeScript 5 (Strict Mode)
   - NativeWind (Tailwind CSS v4)
   - Lucide React Native Icons

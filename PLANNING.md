@@ -1,6 +1,6 @@
 # 🦜 Cockatiel — Master Architecture & Implementation Plan (Cutting-Edge Stack)
 
-> **Cockatiel** is a modern, high-performance, real-time messaging and voice/video calling cross-platform mobile application built with **React Native (Expo New Architecture)** and **Node.js (Fastify + Mongoose 8 + Socket.IO)**.
+> **Cockatiel** is a modern, high-performance, real-time messaging and voice/video calling cross-platform mobile application built with **React Native (Expo SDK 58 + React 19 + New Architecture)** and **Node.js (Fastify + Mongoose 8 + Socket.IO)**.
 
 ---
 
@@ -54,7 +54,7 @@ All screen designs originate from the design mockups in [resources/](file:///f:/
 
 ```
 cockatiel/
-├── frontend/             # React Native (Expo New Architecture) Client Application
+├── frontend/             # React Native (Expo SDK 58 + React 19) Client Application
 ├── backend/              # Node.js + Fastify + Mongoose 8 + Socket.IO Server
 ├── resources/            # Design mockups, UI screenshots, and specifications
 ├── PLANNING.md           # Master architecture & technical plan
@@ -62,8 +62,8 @@ cockatiel/
 ```
 
 ### Frontend (`frontend/`):
-- **Framework:** **React Native (Expo SDK 52+)** with **New Architecture Enabled (`newArchEnabled: true`)** for native TurboModules and Fabric renderer.
-- **Routing:** **Expo Router v4** (Typed file-based navigation).
+- **Framework:** **React Native (Expo SDK 58+)** with **React 19** and **React Native 0.88.1**.
+- **Routing:** **Expo Router v58** (Typed file-based navigation).
 - **Language:** **TypeScript 5.x** in strict mode.
 - **Styling:** **NativeWind (Tailwind CSS v4)** for rapid, clean component styling.
 - **Iconography:** **lucide-react-native** for crisp vector icons.
