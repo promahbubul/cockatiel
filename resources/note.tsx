@@ -1,0 +1,4 @@
+- ami akta mobile app banabo jetar name amer project er name er moto
+- maner project ta tumi resource thake image dekha design korte parbo.
+- project ta fully functional hobe. project ta 2 korer age tumi backend, mobile app er  folder create koro 
+- amake bolo aita project korte backend, frontned konta use korle best hoi. only discussion no coding
