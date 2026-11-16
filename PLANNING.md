@@ -1,264 +1,267 @@
-# 🦜 Cockatiel — Project Architecture & Implementation Plan
+# 🦜 Cockatiel — Master Architecture & Implementation Plan (Cutting-Edge Stack)
 
-> **Cockatiel** is a high-performance, real-time messaging and voice/video calling cross-platform mobile application built with React Native (Expo) and Node.js.
+> **Cockatiel** is a modern, high-performance, real-time messaging and voice/video calling cross-platform mobile application built with **React Native (Expo New Architecture)** and **Node.js (Fastify + Mongoose 8 + Socket.IO)**.
 
 ---
 
-## 1. Project Overview & Design Analysis
+## 1. Project Overview & UI Specifications
 
-All user interface screens are derived from the UI specifications located in the [resources/](file:///f:/programming/student/react-native/cockatiel/resources) directory.
+All screen designs originate from the design mockups in [resources/](file:///f:/programming/student/react-native/cockatiel/resources).
 
-### UI Screens & Feature Breakdown:
+### A. Core UI Screens (Implemented):
 1. **Chats Screen ([resources/Chats.png](file:///f:/programming/student/react-native/cockatiel/resources/Chats.png)):**
-   - Search bar for quick chat filtering.
-   - Horizontal stories / online active contact avatars strip.
-   - Conversation list with avatar, online indicator, contact/group name, last message preview, timestamp, and unread badge count.
-   - Quick action floating/header button to compose a new message.
-   - Bottom tab navigation: **Chats**, **Contacts**, **Calls**, **Profile**.
-
+   - Search bar with instant filtering.
+   - Horizontal active story / online user avatar strip with story rings.
+   - Chat list with last message, timestamp, online badge, and unread counter.
+   - Bottom Tab Navigation (**Chats**, **Contacts**, **Calls**, **Profile**).
 2. **Conversation Screen ([resources/Conversation.png](file:///f:/programming/student/react-native/cockatiel/resources/Conversation.png)):**
-   - Top Header: Back navigation, Avatar with real-time online status badge, Name, Voice Call button, Video Call button.
-   - Date separator indicators (e.g., "TODAY").
-   - Incoming message bubble with sender avatar, message content, timestamp, and message reaction badges (e.g., 👍, ❤️).
-   - Outgoing message bubble (brand blue accent) with timestamp and double-check read status (`✓✓`).
-   - Image & media attachment display with rounded previews and captions.
-   - Message Composer: Attachment button (`+`), text input ("Type a message..."), emoji picker icon, and send button.
-
+   - Header with active contact avatar, online status, audio call and video call actions.
+   - Date pill ("TODAY").
+   - Incoming bubble with message reactions (👍) and outgoing blue bubble with double check (`✓✓`) and reaction (❤️).
+   - Rich image previews with captions.
+   - Interactive message composer (`+` media attachment, text input, emoji picker, send button).
 3. **Calls Screen ([resources/Calls.png](file:///f:/programming/student/react-native/cockatiel/resources/Calls.png)):**
-   - Top header with dial/new call action.
-   - Segmented control filter: **All** vs **Missed**.
-   - Call log list items: Avatar, contact name (highlighted in red for missed calls), call type indicator icon (incoming/outgoing/missed, audio/video), duration label, timestamp, and details (`ℹ`) action.
-
+   - Segmented filter control: **All** vs **Missed**.
+   - Call logs with incoming, outgoing, and missed indicators (missed highlighted in red).
+   - Call duration, timestamp, and details (`ℹ`) trigger.
 4. **Contacts Screen ([resources/Contacts.png](file:///f:/programming/student/react-native/cockatiel/resources/Contacts.png)):**
-   - Search contacts input.
-   - Add new contact button.
-   - Alphabetical section headers (A, B, C...) with interactive A-Z alphabet scrubber on the right edge.
-   - Contact list items with avatar, online status indicator, contact name, and custom status/bio text.
-
+   - Add contact action, search input.
+   - Alphabetically grouped sections (A, B, C...) with interactive A-Z alphabet scrubber.
+   - Contact status / bio lines and online indicators.
 5. **Profile Screen ([resources/Profile.png](file:///f:/programming/student/react-native/cockatiel/resources/Profile.png)):**
-   - User avatar with camera upload badge.
-   - Display name and phone number.
-   - Bio / About section ("Living life one bubble at a time...").
-   - Preferences menu items (Notifications, Privacy & Security, Two-step verification, etc.).
-
-6. **New Message Sheet ([resources/New message.png](file:///f:/programming/student/react-native/cockatiel/resources/New message.png)):**
-   - Search by name or phone number.
-   - "Create New Group" action.
-   - "Add New Contact" action.
-   - "Suggested" contacts list.
-
+   - Large avatar with camera badge, display name, and phone number.
+   - About bio card.
+   - Preferences (Notifications, Privacy & Security) + links to About and Support screens.
+6. **New Message Modal ([resources/New message.png](file:///f:/programming/student/react-native/cockatiel/resources/New message.png)):**
+   - Search input, "Create New Group", "Add New Contact", and suggested contacts.
 7. **About & Support Screens ([resources/About.png](file:///f:/programming/student/react-native/cockatiel/resources/About.png), [resources/Support.png](file:///f:/programming/student/react-native/cockatiel/resources/Support.png)):**
-   - Project info, open source credits, creator profile, and support links.
+   - App overview, guidelines, creator bio, Buy Me A Coffee link, and social links.
+
+### B. Essential Expansion Screens (To Complete Full Functionality):
+1. **Onboarding / Welcome Screen:** First-time launch welcome carousel introducing Cockatiel.
+2. **Phone / Email Auth Screen:** Clean, modern phone number or email login screen.
+3. **OTP Verification Screen:** 6-digit auto-focus pin input with resend timer.
+4. **Profile Setup Screen:** First-time user profile picture picker, display name, and initial status setup.
+5. **Call Ringing Screen (Incoming & Outgoing):** Fullscreen call interface with pulsing avatar, Accept (green) and Decline (red) buttons.
+6. **Active Audio Call Screen:** In-call UI with Mute, Speakerphone, Bluetooth toggle, and End Call actions.
+7. **Active Video Call Screen:** Real-time video stream with Picture-in-Picture (PiP) self-view, camera flip, audio mute, and video off toggles.
+8. **Create Group Step-2 & Group Info Screens:** Group name, avatar picker, member list, and group admin controls.
+9. **Fullscreen Media Viewer:** Pinch-to-zoom photo modal for chat images with save/share capabilities.
 
 ---
 
-## 2. Technology Stack & Rationale
+## 2. Modern 2026 Technology Stack
 
 ```
 cockatiel/
-├── frontend/             # React Native (Expo) Client Application
-├── backend/              # Node.js + Express + Socket.IO Server
-├── resources/            # Design assets & mockups
-├── PLANNING.md           # Master architecture & plan
-└── README.md             # Project documentation
+├── frontend/             # React Native (Expo New Architecture) Client Application
+├── backend/              # Node.js + Fastify + Mongoose 8 + Socket.IO Server
+├── resources/            # Design mockups, UI screenshots, and specifications
+├── PLANNING.md           # Master architecture & technical plan
+└── README.md             # Top-level documentation
 ```
 
 ### Frontend (`frontend/`):
-- **Framework:** **React Native with Expo (SDK 52+)**
-  - Cross-platform native performance (Android & iOS).
-  - Fast iteration with Expo Go and prebuild capabilities.
-- **Language:** **TypeScript** for end-to-end type safety.
-- **Routing & Navigation:** **Expo Router** (File-based routing with native tabs and modal stacks).
-- **Styling:** **NativeWind (Tailwind CSS v4)** for rapid UI reproduction matching designs.
-- **List Optimization:** **@shopify/flash-list** for smooth scrolling across thousands of messages and contacts.
-- **Icons:** **lucide-react-native** for clean, modern iconography.
-- **Real-time Client:** **socket.io-client** for real-time messaging, typing, and presence.
-- **Audio/Video Engine:** **react-native-webrtc** or **LiveKit Client SDK** for voice and video streaming.
+- **Framework:** **React Native (Expo SDK 52+)** with **New Architecture Enabled (`newArchEnabled: true`)** for native TurboModules and Fabric renderer.
+- **Routing:** **Expo Router v4** (Typed file-based navigation).
+- **Language:** **TypeScript 5.x** in strict mode.
+- **Styling:** **NativeWind (Tailwind CSS v4)** for rapid, clean component styling.
+- **Iconography:** **lucide-react-native** for crisp vector icons.
+- **List Performance:** **@shopify/flash-list** for smooth 60/120 FPS infinite message and contact feeds.
+- **Real-Time Client:** **socket.io-client** configured for pure WebSocket transport.
+- **Audio/Video Calling:** **LiveKit Client SDK** (`@livekit/react-native`) for ultra-low latency, crystal-clear voice and video streaming.
 
 ### Backend (`backend/`):
-- **Runtime & Server:** **Node.js + Express.js (TypeScript)**
-- **Real-time Engine:** **Socket.IO** (WebSockets with presence rooms, typing indicators, and acknowledgment callbacks).
-- **Database:** **MongoDB** (Hosted on MongoDB Atlas M0 Free Tier / Local MongoDB).
-- **ODM / Driver:** **Mongoose / Prisma (MongoDB connector)** for type-safe document models and validations.
-- **In-Memory Cache / PubSub:** **Redis** (Used for user online/offline presence tracking, typing indicators, and horizontal scaling).
-- **Authentication:** **JWT (JSON Web Tokens)** + Refresh Token rotation, phone/email login.
-- **Media Storage:** **Cloudinary** (25 monthly credits, ideal for chat media and profile pictures).
-- **Push Notifications:** **Firebase Cloud Messaging (FCM)** / **Expo Push Notification Service**.
+- **Runtime:** **Node.js LTS (ES Modules)**.
+- **HTTP Engine:** **Fastify** — modern, async-first, and 2-3x faster than Express with native JSON schema validation.
+- **Database:** **MongoDB Atlas (M0 Free Tier / Local MongoDB)** — ideal for polymorphic chat messages and embedded sub-documents.
+- **ODM:** **Mongoose 8.x** — latest type-safe schema modeling, async hooks, and validation.
+- **Validation:** **Zod** for end-to-end type inference and request payload validation.
+- **Real-time Engine:** **Socket.IO v4** (WebSockets transport, room-based presence, typing broadcast, and read receipts).
+- **Authentication:** **JWT (JSON Web Tokens)** with Access & Refresh Token rotation and secure password hashing.
+- **Media CDN:** **Cloudinary** (25 monthly credits pool) for automatic image optimization, thumbnails, and media delivery.
+- **Voice/Video Infrastructure:** **LiveKit Server / Cloud** (or WebRTC signaling) for modern media routing.
+- **Push Notifications:** **Expo Push Notification Service / Firebase Cloud Messaging (FCM)**.
 
 ---
 
-## 3. Database Schema Blueprint (MongoDB / Mongoose)
+## 3. Database Schema Blueprint (MongoDB / Mongoose 8)
 
 ```typescript
-// 1. User Schema
-const UserSchema = new Schema({
-  phoneNumber: { type: String, required: true, unique: true },
+import { Schema, model, Document, Types } from 'mongoose';
+
+// 1. User Model
+export interface IUser extends Document {
+  phoneNumber: string;
+  username?: string;
+  displayName: string;
+  avatarUrl?: string;
+  about: string;
+  isOnline: boolean;
+  lastSeen: Date;
+  pushToken?: string;
+}
+
+const UserSchema = new Schema<IUser>({
+  phoneNumber: { type: String, required: true, unique: true, index: true },
   username: { type: String, sparse: true, unique: true },
   displayName: { type: String, required: true },
   avatarUrl: { type: String, default: null },
-  about: { type: String, default: "Living life one bubble at a time..." },
+  about: { type: String, default: 'Living life one bubble at a time 🫧' },
   isOnline: { type: Boolean, default: false },
   lastSeen: { type: Date, default: Date.now },
-  contacts: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  pushToken: { type: String, default: null },
 }, { timestamps: true });
 
-// 2. Chat / Conversation Schema
-const ChatSchema = new Schema({
+// 2. Chat / Conversation Model
+export interface IChat extends Document {
+  isGroup: boolean;
+  groupName?: string;
+  groupAvatar?: string;
+  participants: Types.ObjectId[];
+  admins: Types.ObjectId[];
+  lastMessage?: {
+    text: string;
+    senderId: Types.ObjectId;
+    timestamp: Date;
+  };
+  unreadCounts: Map<string, number>;
+}
+
+const ChatSchema = new Schema<IChat>({
   isGroup: { type: Boolean, default: false },
   groupName: { type: String, default: null },
   groupAvatar: { type: String, default: null },
-  participants: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  participants: [{ type: Schema.Types.ObjectId, ref: 'User', index: true }],
   admins: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   lastMessage: {
-    text: String,
+    text: { type: String },
     senderId: { type: Schema.Types.ObjectId, ref: 'User' },
     timestamp: { type: Date, default: Date.now },
   },
   unreadCounts: { type: Map, of: Number, default: {} },
 }, { timestamps: true });
 
-// 3. Message Schema
-const MessageSchema = new Schema({
+// 3. Message Model
+export interface IMessage extends Document {
+  chatId: Types.ObjectId;
+  senderId: Types.ObjectId;
+  content?: string;
+  mediaUrl?: string;
+  mediaType?: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT';
+  status: 'SENT' | 'DELIVERED' | 'READ';
+  reactions: Array<{
+    userId: Types.ObjectId;
+    emoji: string;
+    createdAt: Date;
+  }>;
+  readBy: Types.ObjectId[];
+}
+
+const MessageSchema = new Schema<IMessage>({
   chatId: { type: Schema.Types.ObjectId, ref: 'Chat', required: true, index: true },
-  senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   content: { type: String, default: null },
   mediaUrl: { type: String, default: null },
-  mediaType: { type: String, enum: ['IMAGE', 'VIDEO', 'AUDIO', null], default: null },
+  mediaType: { type: String, enum: ['IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT', null], default: null },
   status: { type: String, enum: ['SENT', 'DELIVERED', 'READ'], default: 'SENT' },
-  reactions: [
-    {
-      userId: { type: Schema.Types.ObjectId, ref: 'User' },
-      emoji: { type: String, required: true },
-      createdAt: { type: Date, default: Date.now },
-    }
-  ],
+  reactions: [{
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
+    emoji: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  }],
   readBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
-// 4. Call Log Schema
-const CallLogSchema = new Schema({
-  callerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  receiverId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+// 4. Call Log Model
+export interface ICallLog extends Document {
+  callerId: Types.ObjectId;
+  receiverId: Types.ObjectId;
+  callType: 'audio' | 'video';
+  direction: 'incoming' | 'outgoing' | 'missed';
+  duration?: string;
+  roomName: string;
+}
+
+const CallLogSchema = new Schema<ICallLog>({
+  callerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  receiverId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   callType: { type: String, enum: ['audio', 'video'], required: true },
   direction: { type: String, enum: ['incoming', 'outgoing', 'missed'], required: true },
-  duration: { type: String, default: null }, // e.g. "2m 14s"
+  duration: { type: String, default: null },
+  roomName: { type: String, required: true },
 }, { timestamps: true });
 ```
-  senderId      String
-  content       String?
-  mediaUrl      String?
-  mediaType     String?           // IMAGE | VIDEO | AUDIO | DOCUMENT
-  status        String            @default("SENT") // SENT | DELIVERED | READ
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
 
-  chat          Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender        User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  reactions     MessageReaction[]
-}
+---
 
-model MessageReaction {
-  id            String   @id @default(uuid())
-  messageId     String
-  userId        String
-  emoji         String   // e.g. "👍", "❤️"
-  createdAt     DateTime @default(now())
+## 4. Real-time Event Contract (Socket.IO v4)
 
-  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Alice as Alice (Client)
+    participant Server as Fastify + Socket.IO Server
+    actor Bob as Bob (Client)
 
-  @@unique([messageId, userId])
-}
+    Alice->>Server: authenticate { token }
+    Server-->>Alice: authenticated { userId }
+    Server-->>Bob: user:presence_change { userId: Alice, isOnline: true }
 
-model CallLog {
-  id            String    @id @default(uuid())
-  callerId      String
-  receiverId    String
-  callType      String    // AUDIO | VIDEO
-  status        String    // MISSED | COMPLETED | REJECTED | BUSY
-  durationSec   Int       @default(0)
-  startedAt     DateTime  @default(now())
-  endedAt       DateTime?
+    Alice->>Server: message:send { chatId, receiverId, content, tempId }
+    Server->>Bob: message:receive { message }
+    Server-->>Alice: message:ack { tempId, messageId, status: "SENT" }
 
-  caller        User      @relation("Caller", fields: [callerId], references: [id], onDelete: Cascade)
-  receiver      User      @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
-}
+    Bob->>Server: message:mark_read { chatId, messageId }
+    Server-->>Alice: message:status_updated { messageId, status: "READ" }
 ```
 
----
-
-## 4. Real-time Event Contract (Socket.IO)
-
-### Connection & Presence:
-- `client -> server`: `user:join { userId }`
-- `server -> all`: `user:presence_change { userId, isOnline, lastSeen }`
-
-### Messaging:
-- `client -> server`: `message:send { chatId, receiverId, content, mediaUrl, mediaType, tempId }`
-- `server -> receiver`: `message:receive { message }`
-- `server -> sender`: `message:ack { tempId, messageId, status: "SENT" }`
-- `client -> server`: `message:mark_read { chatId, messageId }`
-- `server -> sender`: `message:status_updated { messageId, status: "READ" }`
-- `client -> server`: `message:react { messageId, emoji }`
-- `server -> chat`: `message:reaction_updated { messageId, userId, emoji }`
-
-### Typing Indicator:
-- `client -> server`: `typing:start { chatId }`
-- `client -> server`: `typing:stop { chatId }`
-- `server -> chat`: `user:typing { chatId, userId }`
-
-### WebRTC Voice / Video Calling:
-- `caller -> server`: `call:initiate { receiverId, callType: 'AUDIO'|'VIDEO' }`
-- `server -> receiver`: `call:incoming { callId, caller, callType }`
-- `receiver -> server`: `call:answer { callId, accept: boolean }`
-- `peer -> server -> peer`: `call:signal { callId, sdpOffer, sdpAnswer, iceCandidate }`
-- `peer -> server -> peer`: `call:end { callId, reason }`
+### Event Specifications:
+* **Presence:**
+  - `user:join` $\rightarrow$ User registers active socket connection.
+  - `user:leave` $\rightarrow$ Disconnect triggers offline presence broadcast and updates `lastSeen`.
+* **Instant Messaging:**
+  - `message:send` $\rightarrow$ Sends payload with optimistic UI `tempId`.
+  - `message:receive` $\rightarrow$ Delivered to receiver's private room.
+  - `message:ack` $\rightarrow$ Confirms message persistence to sender.
+  - `message:react` $\rightarrow$ Broadcasts reaction emoji updates.
+* **Typing Indicator:**
+  - `typing:start` & `typing:stop` with 2-second debounce.
+* **Voice / Video Calling (LiveKit / Signaling):**
+  - `call:initiate` $\rightarrow$ Caller initiates call room.
+  - `call:incoming` $\rightarrow$ Receiver receives full-screen incoming alert.
+  - `call:accepted` $\rightarrow$ Both peers join LiveKit audio/video room.
+  - `call:rejected` / `call:ended` $\rightarrow$ Closes media session and logs call entry.
 
 ---
 
-## 5. Step-by-Step Implementation Roadmap
+## 5. Execution Roadmap
 
 ```mermaid
 flowchart TD
-    A["Phase 1: Architecture & Git Remote Setup"] --> B["Phase 2: Backend Setup (Express + Prisma + Socket.IO)"]
-    B --> C["Phase 3: Frontend Setup (Expo + NativeWind + Navigation)"]
-    C --> D["Phase 4: Real-time Chat & Media Sharing"]
-    D --> E["Phase 5: Audio & Video Calling Engine"]
-    E --> F["Phase 6: Notifications, Offline Mode & Final Polish"]
+    P1["Phase 1: Architecture & Git Remote Setup"] --> P2["Phase 2: Backend Core (Fastify + Mongoose 8 + Socket.IO)"]
+    P2 --> P3["Phase 3: Auth & Missing Screens (Login, OTP, Call UI)"]
+    P3 --> P4["Phase 4: Real-time Messaging & Media Uploads (Cloudinary)"]
+    P4 --> P5["Phase 5: Audio & Video Calling Engine (LiveKit)"]
+    P5 --> P6["Phase 6: Notifications, Offline Sync & Production Polish"]
 ```
 
-1. **Phase 1: Architecture & Git Remote Setup (Current Phase)**
-   - Initialize git repository, configure `.gitignore`, add remote origin `https://github.com/promahbubul/cockatiel.git`.
-   - Establish `frontend/`, `backend/`, and master `PLANNING.md`.
-
-2. **Phase 2: Backend Core**
-   - Initialize Node.js TypeScript project in `backend/`.
-   - Set up Prisma ORM, PostgreSQL connection, and migration scripts.
-   - Implement Auth endpoints (Signup, Login, Profile updates).
-   - Configure Socket.IO server with authentication middleware and presence manager.
-
-3. **Phase 3: Frontend Foundation & UI Implementation**
-   - Initialize Expo project with TypeScript and Expo Router in `frontend/`.
-   - Configure NativeWind (Tailwind CSS) and install custom fonts/icons.
-   - Build UI screens strictly matching designs:
-     - Bottom Tab Navigator (`Chats`, `Contacts`, `Calls`, `Profile`).
-     - Chat list screen with story avatars and unread badges.
-     - Conversation screen with speech bubbles, reactions, and media input.
-     - Calls screen with segmented filter (All / Missed).
-     - Contacts screen with A-Z alphabet index.
-     - Profile screen and About/Support pages.
-
-4. **Phase 4: Real-time Chat & Media**
-   - Connect client to Socket.IO backend.
-   - Implement optimistic message rendering for instant responsiveness.
-   - Implement typing indicators, read receipts (`✓✓`), and reaction pickers.
-   - Image picker and upload pipeline (Cloudinary / S3).
-
-5. **Phase 5: Audio & Video Calling**
-   - WebRTC integration for peer-to-peer audio and video calls.
-   - Incoming call ring screen & active call interface with mute/speaker toggles.
-   - Call history logging (duration, status, missed call alerts).
-
-6. **Phase 6: Push Notifications & Polish**
-   - Expo Push Notifications / FCM for background call and message alerts.
-   - App icon, splash screen, and release build readiness.
+1. **Phase 1: Architecture & Git Remote Setup (COMPLETED ✅)**
+   - Git repository initialized and connected to `https://github.com/promahbubul/cockatiel.git`.
+   - Core 8 screens implemented in React Native Expo with New Architecture.
+   - Master architecture locked with cutting-edge stack.
+2. **Phase 2: Backend Core Setup**
+   - Initialize Fastify TypeScript server in `backend/`.
+   - Setup MongoDB Atlas connection with Mongoose 8 models.
+   - Implement Auth endpoints (phone OTP / JWT login) and Zod validation schemas.
+   - Configure Socket.IO server with pure WebSocket transport.
+3. **Phase 3: Auth & Expansion Screens**
+   - Implement Welcome, Login, OTP, and Profile Setup screens.
+   - Implement Incoming/Outgoing Call Screen and Active Call interfaces.
+4. **Phase 4: Real-time Integration & Media**
+   - Integrate `socket.io-client` with React Native state management.
+   - Connect Cloudinary image upload pipeline for chat photos and avatars.
+5. **Phase 5: Voice & Video Calling**
+   - Integrate LiveKit client SDK for HD audio/video calls.
+6. **Phase 6: Notifications & Production Readiness**
+   - Background push notifications and final polish.
