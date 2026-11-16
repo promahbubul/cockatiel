@@ -2,17 +2,19 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider } from '../src/context/AuthContext';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#FFFFFF' },
-        }}
-      >
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#FFFFFF' },
+          }}
+        >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="conversation/[id]"
@@ -63,6 +65,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings/notifications" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="settings/privacy" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

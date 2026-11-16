@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   SectionList,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,23 +14,68 @@ import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONTACTS } from '../../src/constants/mockData';
 import { SearchBar } from '../../src/components/SearchBar';
 import { ContactListItem } from '../../src/components/ContactListItem';
-
-const ALPHABET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+import { api } from '../../src/services/api';
+import { ContactItem } from '../../src/types';
 
 export default function ContactsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [contacts, setContacts] = useState<ContactItem[]>(MOCK_CONTACTS);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredContacts = MOCK_CONTACTS.filter((c) =>
+  const fetchContacts = async () => {
+    try {
+      const res = await api.users.getContacts();
+      if (res.success && res.contacts && res.contacts.length > 0) {
+        const mapped: ContactItem[] = res.contacts.map((c: any) => ({
+          id: c.id,
+          name: c.displayName,
+          avatar: c.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+          statusText: c.about || 'Available',
+          isOnline: !!c.isOnline,
+          section: (c.displayName?.[0] || '#').toUpperCase(),
+        }));
+        setContacts(mapped);
+      }
+    } catch {
+      // Keep mock contacts if backend is starting
+    }
+  };
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchContacts();
+    setRefreshing(false);
+  };
+
+  const handleStartChat = async (contact: ContactItem) => {
+    try {
+      const res = await api.chats.createDirect(contact.id);
+      if (res.success && res.chat) {
+        router.push(`/conversation/${res.chat.id}`);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+    router.push(`/conversation/chat_${contact.id}`);
+  };
+
+  const filteredContacts = contacts.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.statusText.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Group contacts by section
-  const sections = ALPHABET.map((letter) => ({
+  // Group contacts by section dynamically
+  const letters = Array.from(new Set(filteredContacts.map((c) => c.section))).sort();
+  const sections = letters.map((letter) => ({
     title: letter,
     data: filteredContacts.filter((c) => c.section === letter),
-  })).filter((sec) => sec.data.length > 0 || !searchQuery);
+  }));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -59,29 +105,23 @@ export default function ContactsScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ContactListItem
+              contact={item}
+              onPress={() => handleStartChat(item)}
+            />
+          )}
           renderSectionHeader={({ section: { title } }) => (
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{title}</Text>
             </View>
           )}
-          renderItem={({ item }) => (
-            <ContactListItem
-              contact={item}
-              onPress={() => router.push(`/conversation/chat_${item.id}`)}
-            />
-          )}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+          }
         />
-
-        {/* Right Alphabet Scrubber */}
-        <View style={styles.alphabetIndex}>
-          {ALPHABET.map((letter) => (
-            <TouchableOpacity key={letter} style={styles.alphabetLetterButton}>
-              <Text style={styles.alphabetLetterText}>{letter}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
     </SafeAreaView>
   );
@@ -90,33 +130,32 @@ export default function ContactsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   title: {
-    fontSize: 34,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     color: COLORS.text,
-    letterSpacing: -0.5,
   },
   actionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.inputBackground,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
   listWrapper: {
     flex: 1,
@@ -126,30 +165,13 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   sectionHeader: {
-    paddingHorizontal: 24,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 16,
     paddingVertical: 6,
-    backgroundColor: '#FFFFFF',
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.textSecondary,
-  },
-  alphabetIndex: {
-    position: 'absolute',
-    right: 8,
-    top: 20,
-    bottom: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alphabetLetterButton: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-  },
-  alphabetLetterText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
   },
 });

@@ -12,9 +12,16 @@ import { useRouter } from 'expo-router';
 import { Camera, Bell, Shield, ChevronRight, Info, HeartHandshake } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { CURRENT_USER } from '../../src/constants/mockData';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+
+  const displayName = user?.displayName || CURRENT_USER.name;
+  const phoneNumber = user?.phoneNumber || CURRENT_USER.phone;
+  const avatarUrl = user?.avatarUrl || CURRENT_USER.avatar;
+  const aboutText = user?.about || CURRENT_USER.about;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -30,20 +37,20 @@ export default function ProfileScreen() {
         {/* User Info & Avatar */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
-            <Image source={{ uri: CURRENT_USER.avatar }} style={styles.avatarImage} />
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
             <TouchableOpacity style={styles.cameraBadge} activeOpacity={0.8}>
               <Camera size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.userName}>{CURRENT_USER.name}</Text>
-          <Text style={styles.userPhone}>{CURRENT_USER.phone}</Text>
+          <Text style={styles.userName}>{displayName}</Text>
+          <Text style={styles.userPhone}>{phoneNumber}</Text>
         </View>
 
         {/* ABOUT Section */}
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>ABOUT</Text>
           <View style={styles.aboutCard}>
-            <Text style={styles.aboutText}>{CURRENT_USER.about}</Text>
+            <Text style={styles.aboutText}>{aboutText}</Text>
           </View>
         </View>
 

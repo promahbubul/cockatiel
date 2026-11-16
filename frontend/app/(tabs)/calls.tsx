@@ -1,21 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { PhoneCall } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CALLS } from '../../src/constants/mockData';
 import { CallListItem } from '../../src/components/CallListItem';
+import { api } from '../../src/services/api';
+import { CallLogItem } from '../../src/types';
 
 export default function CallsScreen() {
+  const router = useRouter();
   const [filter, setFilter] = useState<'all' | 'missed'>('all');
+  const [calls, setCalls] = useState<CallLogItem[]>(MOCK_CALLS);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredCalls = MOCK_CALLS.filter((call) => {
+  const fetchCalls = async () => {
+    try {
+      const res = await api.calls.getCalls();
+      if (res.success && res.calls && res.calls.length > 0) {
+        const mapped: CallLogItem[] = res.calls.map((c: any) => ({
+          id: c.id,
+          name: c.otherUser?.displayName || 'User',
+          avatar: c.otherUser?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+          callType: c.callType,
+          direction: c.direction,
+          timestamp: c.createdAt
+            ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : 'Recent',
+          duration: c.duration,
+        }));
+        setCalls(mapped);
+      }
+    } catch {
+      // Keep mock calls if backend is starting
+    }
+  };
+
+  useEffect(() => {
+    fetchCalls();
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchCalls();
+    setRefreshing(false);
+  };
+
+  const filteredCalls = calls.filter((call) => {
     if (filter === 'missed') {
       return call.direction === 'missed';
     }
@@ -27,7 +66,11 @@ export default function CallsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Calls</Text>
-        <TouchableOpacity style={styles.actionButton} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/new-message')}
+          activeOpacity={0.8}
+        >
           <PhoneCall size={20} color={COLORS.text} />
         </TouchableOpacity>
       </View>
@@ -80,12 +123,30 @@ export default function CallsScreen() {
         renderItem={({ item }) => (
           <CallListItem
             call={item}
-            onPress={() => {}}
-            onInfoPress={() => {}}
+            onPress={() =>
+              router.push({
+                pathname: item.callType === 'video' ? '/call/video' : '/call/audio',
+                params: { name: item.name, avatar: item.avatar },
+              })
+            }
+            onInfoPress={() =>
+              router.push({
+                pathname: '/call/ringing',
+                params: { name: item.name, avatar: item.avatar, type: item.callType },
+              })
+            }
           />
         )}
-        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No recent calls</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   );
@@ -94,49 +155,47 @@ export default function CallsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   title: {
-    fontSize: 34,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     color: COLORS.text,
-    letterSpacing: -0.5,
   },
   actionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.inputBackground,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   segmentedContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   segmentedTrack: {
     flexDirection: 'row',
-    backgroundColor: COLORS.inputBackground,
-    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
     padding: 3,
-    height: 44,
   },
   segmentTab: {
     flex: 1,
-    justifyContent: 'center',
+    paddingVertical: 7,
     alignItems: 'center',
-    borderRadius: 19,
+    borderRadius: 8,
   },
   activeSegmentTab: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -145,14 +204,22 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: COLORS.textSecondary,
   },
   activeSegmentText: {
     color: COLORS.text,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   listContent: {
-    paddingBottom: 24,
+    paddingVertical: 4,
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
   },
 });

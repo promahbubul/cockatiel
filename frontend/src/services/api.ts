@@ -1,0 +1,136 @@
+import { Platform } from 'react-native';
+import { storage } from './storage';
+
+// Base API URL configuration
+export const API_BASE_URL =
+  Platform.OS === 'android'
+    ? 'http://10.0.2.2:5000/api'
+    : 'http://localhost:5000/api';
+
+const TOKEN_KEY = 'cockatiel_auth_token';
+
+let cachedToken: string | null = null;
+
+export async function setAuthToken(token: string | null) {
+  cachedToken = token;
+  if (token) {
+    await storage.setItem(TOKEN_KEY, token);
+  } else {
+    await storage.removeItem(TOKEN_KEY);
+  }
+}
+
+export async function getAuthToken(): Promise<string | null> {
+  if (cachedToken) return cachedToken;
+  cachedToken = await storage.getItem(TOKEN_KEY);
+  return cachedToken;
+}
+
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = await getAuthToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const url = `${API_BASE_URL}${endpoint}`;
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Request failed');
+  }
+
+  return data;
+}
+
+export const api = {
+  // Auth
+  auth: {
+    sendOtp: (phoneNumber: string) =>
+      request<{ success: boolean; message: string; demoCode?: string }>('/auth/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ phoneNumber }),
+      }),
+
+    verifyOtp: (phoneNumber: string, code: string) =>
+      request<{ success: boolean; token: string; isNewUser: boolean; user: any }>('/auth/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ phoneNumber, code }),
+      }),
+
+    getMe: () => request<{ success: boolean; user: any }>('/auth/me'),
+
+    updateProfile: (profile: { displayName?: string; about?: string; avatarUrl?: string }) =>
+      request<{ success: boolean; user: any }>('/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify(profile),
+      }),
+  },
+
+  // Users
+  users: {
+    getContacts: () => request<{ success: boolean; contacts: any[] }>('/users/contacts'),
+    search: (q: string) => request<{ success: boolean; users: any[] }>(`/users/search?q=${encodeURIComponent(q)}`),
+    getById: (id: string) => request<{ success: boolean; user: any }>(`/users/${id}`),
+  },
+
+  // Chats
+  chats: {
+    getChats: () => request<{ success: boolean; chats: any[] }>('/chats'),
+    getById: (id: string) => request<{ success: boolean; chat: any }>(`/chats/${id}`),
+    createDirect: (recipientId: string) =>
+      request<{ success: boolean; chat: any }>('/chats/direct', {
+        method: 'POST',
+        body: JSON.stringify({ recipientId }),
+      }),
+    createGroup: (groupName: string, memberIds: string[], groupAvatar?: string) =>
+      request<{ success: boolean; chat: any }>('/chats/group', {
+        method: 'POST',
+        body: JSON.stringify({ groupName, memberIds, groupAvatar }),
+      }),
+  },
+
+  // Messages
+  messages: {
+    getMessages: (chatId: string, limit = 50, before?: string) =>
+      request<{ success: boolean; messages: any[] }>(
+        `/messages/chat/${chatId}?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ''}`
+      ),
+
+    send: (payload: { chatId: string; content?: string; mediaUrl?: string; mediaType?: string; caption?: string }) =>
+      request<{ success: boolean; message: any }>('/messages/send', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    react: (messageId: string, emoji: string) =>
+      request<{ success: boolean; reactions: any[] }>('/messages/react', {
+        method: 'POST',
+        body: JSON.stringify({ messageId, emoji }),
+      }),
+  },
+
+  // Calls
+  calls: {
+    getCalls: () => request<{ success: boolean; calls: any[] }>('/calls'),
+    logCall: (payload: {
+      receiverId: string;
+      callType: 'audio' | 'video';
+      direction: 'incoming' | 'outgoing' | 'missed';
+      duration?: string;
+      roomName: string;
+    }) =>
+      request<{ success: boolean; call: any }>('/calls/log', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+  },
+};
