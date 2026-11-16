@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 
 export interface AuthenticatedUser {
   userId: string;
-  phoneNumber: string;
+  email: string;
 }
 
 export async function authenticateToken(
@@ -15,8 +15,7 @@ export async function authenticateToken(
       return reply.status(401).send({ error: 'Unauthorized: Missing or invalid token' });
     }
 
-    const token = authHeader.split(' ')[1];
-    const decoded = await request.jwtVerify<{ userId: string; phoneNumber: string }>();
+    const decoded = await request.jwtVerify<{ userId: string; email: string }>();
     (request as any).user = decoded;
   } catch (err: any) {
     return reply.status(401).send({ error: 'Unauthorized: Token expired or invalid' });

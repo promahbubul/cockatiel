@@ -14,6 +14,7 @@ export async function seedDatabase() {
   await mongoose.connect(uri);
 
   console.log('[Seed] Clearing existing collections...');
+  await User.collection.dropIndexes().catch(() => {});
   await Promise.all([
     User.deleteMany({}),
     Chat.deleteMany({}),
@@ -21,24 +22,24 @@ export async function seedDatabase() {
     CallLog.deleteMany({}),
   ]);
 
-  console.log('[Seed] Inserting users...');
+  console.log('[Seed] Inserting users with emails...');
   const users = await User.insertMany([
     {
-      phoneNumber: '+15550001234',
+      email: 'alex@cockatiel.app',
       displayName: 'Alex Johnson',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
       about: 'Living life one bubble at a time 🫧 | Exploring the world 🌍',
       isOnline: true,
     },
     {
-      phoneNumber: '+15550005678',
+      email: 'emma@cockatiel.app',
       displayName: 'Emma Watson',
       avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
       about: 'Hey there! I am using Cockatiel 🦜',
       isOnline: true,
     },
     {
-      phoneNumber: '+15550009012',
+      email: 'lucas@cockatiel.app',
       displayName: 'Lucas Chen',
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
       about: 'Music producer 🎵 & Coffee enthusiast ☕',
@@ -46,14 +47,14 @@ export async function seedDatabase() {
       lastSeen: new Date(Date.now() - 3600 * 1000 * 4),
     },
     {
-      phoneNumber: '+15550003456',
+      email: 'mia@cockatiel.app',
       displayName: 'Mia Wong',
       avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&auto=format&fit=crop&q=80',
       about: 'Frontend developer 💻 | Tech lover',
       isOnline: true,
     },
     {
-      phoneNumber: '+15550007890',
+      email: 'oliver@cockatiel.app',
       displayName: 'Oliver Smith',
       avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
       about: 'Photography & traveling 📷✈️',
@@ -169,7 +170,7 @@ export async function seedDatabase() {
     },
   ]);
 
-  console.log('✅ Database seeded successfully!');
+  console.log('✅ Database seeded with email accounts successfully!');
   await mongoose.disconnect();
 }
 

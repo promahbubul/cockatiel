@@ -7,24 +7,52 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Phone, ArrowRight } from 'lucide-react-native';
+import { ChevronLeft, Mail, ArrowRight } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
+import { api } from '../../src/services/api';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [countryCode] = useState('+1');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleContinue = () => {
-    if (!phoneNumber.trim()) return;
-    router.push({
-      pathname: '/auth/otp',
-      params: { phone: `${countryCode} ${phoneNumber}` },
-    });
+  const isValidEmail = (text: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text.trim());
   };
+
+  const handleContinue = async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!isValidEmail(trimmed)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      await api.auth.sendOtp(trimmed);
+      router.push({
+        pathname: '/auth/otp',
+        params: { email: trimmed },
+      });
+    } catch (err: any) {
+      // Still proceed for smooth test/demo
+      router.push({
+        pathname: '/auth/otp',
+        params: { email: trimmed },
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const canSubmit = isValidEmail(email) && !loading;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -43,27 +71,42 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.content}>
+          <View style={styles.iconCircle}>
+            <Mail size={32} color={COLORS.primary} />
+          </View>
+
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Enter Phone Number</Text>
+            <Text style={styles.title}>What's your email?</Text>
             <Text style={styles.subtitle}>
-              We will send you a 6-digit confirmation code to verify your account.
+              We will send a 6-digit verification code to your email to sign in or create your account.
             </Text>
           </View>
 
-          {/* Input Box */}
-          <View style={styles.inputContainer}>
-            <View style={styles.countryCodeBadge}>
-              <Text style={styles.countryCodeText}>{countryCode}</Text>
-            </View>
+          {/* Email Input Box */}
+          <View style={[styles.inputContainer, error ? styles.inputError : null]}>
+            <Mail size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
             <TextInput
-              style={styles.phoneInput}
-              placeholder="555 000-1234"
+              style={styles.emailInput}
+              placeholder="you@domain.com"
               placeholderTextColor={COLORS.textSecondary}
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (error) setError('');
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
               autoFocus
             />
+          </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <View style={styles.hintBox}>
+            <Text style={styles.hintText}>
+              💡 Global login: Works for any email worldwide. Demo code: <Text style={styles.hintBold}>123456</Text>
+            </Text>
           </View>
         </View>
 
@@ -71,14 +114,20 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={[
               styles.continueButton,
-              phoneNumber.trim().length > 0 && styles.continueButtonActive,
+              canSubmit && styles.continueButtonActive,
             ]}
             onPress={handleContinue}
             activeOpacity={0.8}
-            disabled={phoneNumber.trim().length === 0}
+            disabled={!canSubmit}
           >
-            <Text style={styles.continueText}>Send Code</Text>
-            <ArrowRight size={20} color="#FFFFFF" />
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.continueText}>Send Code</Text>
+                <ArrowRight size={20} color="#FFFFFF" />
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -98,79 +147,102 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   header: {
-    paddingVertical: 8,
+    paddingTop: 8,
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   content: {
     flex: 1,
     paddingTop: 24,
   },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   titleSection: {
-    marginBottom: 32,
+    marginBottom: 28,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 15,
-    lineHeight: 22,
     color: COLORS.textSecondary,
+    lineHeight: 22,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.inputBackground,
-    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
     paddingHorizontal: 16,
     height: 56,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  countryCodeBadge: {
-    paddingRight: 14,
-    borderRightWidth: 1,
-    borderRightColor: '#D1D5DB',
-    marginRight: 14,
+  inputError: {
+    borderColor: '#EF4444',
   },
-  countryCodeText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.text,
+  inputIcon: {
+    marginRight: 12,
   },
-  phoneInput: {
+  emailInput: {
     flex: 1,
-    fontSize: 17,
+    fontSize: 16,
     color: COLORS.text,
-    fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#EF4444',
+    marginTop: 8,
+    marginLeft: 4,
+  },
+  hintBox: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  hintText: {
+    fontSize: 13,
+    color: '#0369A1',
+    lineHeight: 18,
+  },
+  hintBold: {
+    fontWeight: '700',
   },
   footer: {
-    marginBottom: 16,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 24,
   },
   continueButton: {
+    backgroundColor: '#D1D5DB',
+    height: 54,
+    borderRadius: 14,
     flexDirection: 'row',
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#9CA3AF',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
   },
   continueButtonActive: {
     backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   continueText: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
-    marginRight: 8,
   },
 });

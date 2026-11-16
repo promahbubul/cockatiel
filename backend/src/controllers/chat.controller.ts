@@ -9,7 +9,7 @@ export async function getChats(request: FastifyRequest, reply: FastifyReply) {
   const chats = await Chat.find({
     participants: new Types.ObjectId(currentUserId),
   })
-    .populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen')
+    .populate('participants', 'displayName email avatarUrl isOnline lastSeen')
     .sort({ updatedAt: -1 })
     .lean();
 
@@ -29,7 +29,7 @@ export async function getChats(request: FastifyRequest, reply: FastifyReply) {
         participants: chat.participants.map((p: any) => ({
           id: p._id.toString(),
           displayName: p.displayName,
-          phoneNumber: p.phoneNumber,
+          email: p.email,
           avatarUrl: p.avatarUrl,
           isOnline: p.isOnline,
         })),
@@ -55,7 +55,7 @@ export async function getChatById(request: FastifyRequest<{ Params: { id: string
     _id: id,
     participants: new Types.ObjectId(currentUserId),
   })
-    .populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen about')
+    .populate('participants', 'displayName email avatarUrl isOnline lastSeen about')
     .lean();
 
   if (!chat) {
@@ -76,7 +76,7 @@ export async function getChatById(request: FastifyRequest<{ Params: { id: string
       participants: (chat.participants as any[]).map((p: any) => ({
         id: p._id.toString(),
         displayName: p.displayName,
-        phoneNumber: p.phoneNumber,
+        email: p.email,
         avatarUrl: p.avatarUrl,
         isOnline: p.isOnline,
         about: p.about,
@@ -104,7 +104,7 @@ export async function createDirectChat(request: FastifyRequest, reply: FastifyRe
   let chat = await Chat.findOne({
     isGroup: false,
     participants: { $all: [new Types.ObjectId(currentUserId), new Types.ObjectId(recipientId)] },
-  }).populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen');
+  }).populate('participants', 'displayName email avatarUrl isOnline lastSeen');
 
   if (!chat) {
     chat = await Chat.create({
@@ -112,7 +112,7 @@ export async function createDirectChat(request: FastifyRequest, reply: FastifyRe
       participants: [new Types.ObjectId(currentUserId), new Types.ObjectId(recipientId)],
       unreadCounts: new Map([[currentUserId, 0], [recipientId, 0]]),
     });
-    chat = await chat.populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen');
+    chat = await chat.populate('participants', 'displayName email avatarUrl isOnline lastSeen');
   }
 
   return reply.send({
@@ -123,7 +123,7 @@ export async function createDirectChat(request: FastifyRequest, reply: FastifyRe
       participants: (chat.participants as any[]).map((p: any) => ({
         id: p._id.toString(),
         displayName: p.displayName,
-        phoneNumber: p.phoneNumber,
+        email: p.email,
         avatarUrl: p.avatarUrl,
         isOnline: p.isOnline,
       })),
@@ -157,7 +157,7 @@ export async function createGroupChat(request: FastifyRequest, reply: FastifyRep
     unreadCounts: initialUnread,
   });
 
-  chat = await chat.populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen');
+  chat = await chat.populate('participants', 'displayName email avatarUrl isOnline lastSeen');
 
   return reply.send({
     success: true,
@@ -169,7 +169,7 @@ export async function createGroupChat(request: FastifyRequest, reply: FastifyRep
       participants: (chat.participants as any[]).map((p: any) => ({
         id: p._id.toString(),
         displayName: p.displayName,
-        phoneNumber: p.phoneNumber,
+        email: p.email,
         avatarUrl: p.avatarUrl,
       })),
     },

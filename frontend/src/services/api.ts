@@ -54,16 +54,16 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const api = {
   // Auth
   auth: {
-    sendOtp: (phoneNumber: string) =>
+    sendOtp: (email: string) =>
       request<{ success: boolean; message: string; demoCode?: string }>('/auth/send-otp', {
         method: 'POST',
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({ email }),
       }),
 
-    verifyOtp: (phoneNumber: string, code: string) =>
+    verifyOtp: (email: string, code: string) =>
       request<{ success: boolean; token: string; isNewUser: boolean; user: any }>('/auth/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({ phoneNumber, code }),
+        body: JSON.stringify({ email, code }),
       }),
 
     getMe: () => request<{ success: boolean; user: any }>('/auth/me'),

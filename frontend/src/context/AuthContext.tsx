@@ -5,7 +5,7 @@ import { CURRENT_USER } from '../constants/mockData';
 
 interface UserProfile {
   id: string;
-  phoneNumber: string;
+  email: string;
   displayName: string;
   avatarUrl: string;
   about?: string;
@@ -16,7 +16,7 @@ interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
   isLoading: boolean;
-  login: (phoneNumber: string, code: string) => Promise<boolean>;
+  login: (email: string, code: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (profile: { displayName?: string; about?: string; avatarUrl?: string }) => Promise<void>;
 }
@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Auto demo login for seamless local development
         try {
-          const verifyRes = await api.auth.verifyOtp('+15550001234', '123456');
+          const verifyRes = await api.auth.verifyOtp('alex@cockatiel.app', '123456');
           if (verifyRes.success && verifyRes.token) {
             await setAuthToken(verifyRes.token);
             setToken(verifyRes.token);
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fallback to offline mock user
           setUser({
             id: CURRENT_USER.id,
-            phoneNumber: CURRENT_USER.phone || '+15550001234',
+            email: CURRENT_USER.email,
             displayName: CURRENT_USER.name,
             avatarUrl: CURRENT_USER.avatar,
             about: CURRENT_USER.about || '',
@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('[AuthContext] Auth init fallback to mock user', err);
         setUser({
           id: CURRENT_USER.id,
-          phoneNumber: CURRENT_USER.phone || '+15550001234',
+          email: CURRENT_USER.email,
           displayName: CURRENT_USER.name,
           avatarUrl: CURRENT_USER.avatar,
           about: CURRENT_USER.about || '',
@@ -91,9 +91,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = async (phoneNumber: string, code: string): Promise<boolean> => {
+  const login = async (email: string, code: string): Promise<boolean> => {
     try {
-      const res = await api.auth.verifyOtp(phoneNumber, code);
+      const res = await api.auth.verifyOtp(email, code);
       if (res.success && res.token) {
         await setAuthToken(res.token);
         setToken(res.token);

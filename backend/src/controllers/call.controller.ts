@@ -11,8 +11,8 @@ export async function getCalls(request: FastifyRequest, reply: FastifyReply) {
   })
     .sort({ createdAt: -1 })
     .limit(50)
-    .populate('callerId', 'displayName avatarUrl phoneNumber')
-    .populate('receiverId', 'displayName avatarUrl phoneNumber')
+    .populate('callerId', 'displayName avatarUrl email')
+    .populate('receiverId', 'displayName avatarUrl email')
     .lean();
 
   return reply.send({
@@ -27,7 +27,7 @@ export async function getCalls(request: FastifyRequest, reply: FastifyReply) {
           id: otherUser._id.toString(),
           displayName: otherUser.displayName,
           avatarUrl: otherUser.avatarUrl,
-          phoneNumber: otherUser.phoneNumber,
+          email: otherUser.email,
         },
         callType: log.callType,
         direction: isCaller ? 'outgoing' : log.direction,

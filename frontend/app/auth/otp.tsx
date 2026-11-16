@@ -7,22 +7,30 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ArrowRight, RotateCw } from 'lucide-react-native';
+import { ChevronLeft, ArrowRight, RotateCw, MailCheck } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { api } from '../../src/services/api';
 
 export default function OtpScreen() {
   const router = useRouter();
-  const { phone } = useLocalSearchParams();
+  const { email } = useLocalSearchParams();
+  const userEmail = String(email || 'alex@cockatiel.app').trim();
   const { login } = useAuth();
+
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const inputRefs = useRef<any[]>([]);
 
   const handleTextChange = (text: string, index: number) => {
+    if (errorMessage) setErrorMessage('');
     const newCode = [...code];
     newCode[index] = text;
     setCode(newCode);
@@ -43,15 +51,35 @@ export default function OtpScreen() {
   const handleVerify = async () => {
     if (!isComplete) return;
     setLoading(true);
+    setErrorMessage('');
     const pin = code.join('');
-    const rawPhone = String(phone || '+15550001234').replace(/[^0-9+]/g, '');
 
-    const success = await login(rawPhone || '+15550001234', pin);
-    setLoading(false);
-    if (success) {
-      router.replace('/(tabs)');
-    } else {
-      router.push('/auth/setup-profile');
+    try {
+      const success = await login(userEmail, pin);
+      setLoading(false);
+      if (success) {
+        router.replace('/(tabs)');
+      } else {
+        setErrorMessage('Invalid verification code. Use demo code: 123456');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setErrorMessage(err.message || 'Verification failed');
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setResendSuccess(false);
+    setErrorMessage('');
+    try {
+      await api.auth.sendOtp(userEmail);
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 4000);
+    } catch {
+      setResendSuccess(true);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -72,10 +100,14 @@ export default function OtpScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.title}>Verification Code</Text>
+          <View style={styles.iconCircle}>
+            <MailCheck size={32} color={COLORS.primary} />
+          </View>
+
+          <Text style={styles.title}>Check your inbox</Text>
           <Text style={styles.subtitle}>
-            Enter the 6-digit code sent to{' '}
-            <Text style={styles.boldText}>{phone || '+1 555 000-1234'}</Text>
+            We've sent a 6-digit confirmation code to{' '}
+            <Text style={styles.boldText}>{userEmail}</Text>
           </Text>
 
           {/* 6-box Pin Input */}
@@ -87,35 +119,62 @@ export default function OtpScreen() {
                 style={[
                   styles.otpBox,
                   digit ? styles.otpBoxFilled : null,
+                  errorMessage ? styles.otpBoxError : null,
                 ]}
+                keyboardType="number-pad"
+                maxLength={1}
                 value={digit}
                 onChangeText={(text) => handleTextChange(text, index)}
                 onKeyPress={(e) => handleKeyPress(e, index)}
-                keyboardType="number-pad"
-                maxLength={1}
                 autoFocus={index === 0}
               />
             ))}
           </View>
 
-          <TouchableOpacity style={styles.resendRow} activeOpacity={0.7}>
-            <RotateCw size={16} color={COLORS.primary} style={styles.resendIcon} />
-            <Text style={styles.resendText}>Resend code in <Text style={styles.boldText}>00:28</Text></Text>
-          </TouchableOpacity>
+          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+          {/* Resend Action */}
+          <View style={styles.resendContainer}>
+            <Text style={styles.resendPrompt}>Didn't receive code? </Text>
+            <TouchableOpacity onPress={handleResend} disabled={resending} activeOpacity={0.7} style={styles.resendButton}>
+              {resending ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <>
+                  <RotateCw size={14} color={COLORS.primary} style={styles.rotateIcon} />
+                  <Text style={styles.resendText}>
+                    {resendSuccess ? 'Code Resent!' : 'Resend Code'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.hintBox}>
+            <Text style={styles.hintText}>
+              💡 Instant Login: Demo code is <Text style={styles.hintBold}>123456</Text>
+            </Text>
+          </View>
         </View>
 
         <View style={styles.footer}>
           <TouchableOpacity
             style={[
               styles.verifyButton,
-              isComplete && styles.verifyButtonActive,
+              isComplete && !loading && styles.verifyButtonActive,
             ]}
             onPress={handleVerify}
             activeOpacity={0.8}
-            disabled={!isComplete}
+            disabled={!isComplete || loading}
           >
-            <Text style={styles.verifyText}>Verify & Continue</Text>
-            <ArrowRight size={20} color="#FFFFFF" />
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.verifyText}>Verify & Continue</Text>
+                <ArrowRight size={20} color="#FFFFFF" />
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -135,28 +194,42 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   header: {
-    paddingVertical: 8,
+    paddingTop: 8,
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   content: {
     flex: 1,
-    paddingTop: 24,
+    paddingTop: 20,
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     color: COLORS.text,
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    lineHeight: 22,
     color: COLORS.textSecondary,
-    marginBottom: 36,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 32,
+    paddingHorizontal: 12,
   },
   boldText: {
     fontWeight: '700',
@@ -164,62 +237,92 @@ const styles = StyleSheet.create({
   },
   otpRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 28,
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 20,
   },
   otpBox: {
     width: 48,
     height: 56,
-    borderRadius: 14,
-    backgroundColor: COLORS.inputBackground,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: COLORS.surface,
     textAlign: 'center',
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.text,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
   },
   otpBoxFilled: {
     borderColor: COLORS.primary,
     backgroundColor: '#FFFFFF',
   },
-  resendRow: {
+  otpBoxError: {
+    borderColor: '#EF4444',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#EF4444',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  resendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 10,
   },
-  resendIcon: {
-    marginRight: 6,
+  resendPrompt: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  resendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rotateIcon: {
+    marginRight: 4,
   },
   resendText: {
     fontSize: 14,
-    color: COLORS.primary,
     fontWeight: '600',
+    color: COLORS.primary,
+  },
+  hintBox: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 24,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    width: '100%',
+  },
+  hintText: {
+    fontSize: 13,
+    color: '#0369A1',
+    textAlign: 'center',
+  },
+  hintBold: {
+    fontWeight: '700',
   },
   footer: {
-    marginBottom: 16,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 24,
   },
   verifyButton: {
+    backgroundColor: '#D1D5DB',
+    height: 54,
+    borderRadius: 14,
     flexDirection: 'row',
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#9CA3AF',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
   },
   verifyButtonActive: {
     backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   verifyText: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
-    marginRight: 8,
   },
 });

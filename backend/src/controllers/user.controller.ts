@@ -4,7 +4,7 @@ import { User } from '../models/User.js';
 export async function getContacts(request: FastifyRequest, reply: FastifyReply) {
   const currentUserId = (request as any).user?.userId;
   const users = await User.find(currentUserId ? { _id: { $ne: currentUserId } } : {})
-    .select('displayName phoneNumber avatarUrl about isOnline lastSeen')
+    .select('displayName email avatarUrl about isOnline lastSeen')
     .sort({ displayName: 1 })
     .lean();
 
@@ -13,7 +13,7 @@ export async function getContacts(request: FastifyRequest, reply: FastifyReply) 
     contacts: users.map((u: any) => ({
       id: u._id.toString(),
       displayName: u.displayName,
-      phoneNumber: u.phoneNumber,
+      email: u.email,
       avatarUrl: u.avatarUrl,
       about: u.about,
       isOnline: u.isOnline,
@@ -33,9 +33,9 @@ export async function searchUsers(request: FastifyRequest, reply: FastifyReply) 
   const regex = new RegExp(query.trim(), 'i');
   const users = await User.find({
     _id: { $ne: currentUserId },
-    $or: [{ displayName: regex }, { phoneNumber: regex }],
+    $or: [{ displayName: regex }, { email: regex }],
   })
-    .select('displayName phoneNumber avatarUrl about isOnline lastSeen')
+    .select('displayName email avatarUrl about isOnline lastSeen')
     .limit(20)
     .lean();
 
@@ -44,7 +44,7 @@ export async function searchUsers(request: FastifyRequest, reply: FastifyReply) 
     users: users.map((u: any) => ({
       id: u._id.toString(),
       displayName: u.displayName,
-      phoneNumber: u.phoneNumber,
+      email: u.email,
       avatarUrl: u.avatarUrl,
       about: u.about,
       isOnline: u.isOnline,
@@ -55,7 +55,7 @@ export async function searchUsers(request: FastifyRequest, reply: FastifyReply) 
 
 export async function getUserById(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as any;
-  const user = await User.findById(id).select('displayName phoneNumber avatarUrl about isOnline lastSeen').lean();
+  const user = await User.findById(id).select('displayName email avatarUrl about isOnline lastSeen').lean();
 
   if (!user) {
     return reply.status(404).send({ error: 'User not found' });
@@ -66,7 +66,7 @@ export async function getUserById(request: FastifyRequest, reply: FastifyReply) 
     user: {
       id: (user as any)._id.toString(),
       displayName: (user as any).displayName,
-      phoneNumber: (user as any).phoneNumber,
+      email: (user as any).email,
       avatarUrl: (user as any).avatarUrl,
       about: (user as any).about,
       isOnline: (user as any).isOnline,

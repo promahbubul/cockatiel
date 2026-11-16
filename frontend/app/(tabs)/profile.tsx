@@ -24,7 +24,7 @@ export default function ProfileScreen() {
   };
 
   const displayName = user?.displayName || CURRENT_USER.name;
-  const phoneNumber = user?.phoneNumber || CURRENT_USER.phone;
+  const userEmail = user?.email || CURRENT_USER.email;
   const avatarUrl = user?.avatarUrl || CURRENT_USER.avatar;
   const aboutText = user?.about || CURRENT_USER.about;
 
@@ -48,7 +48,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
           <Text style={styles.userName}>{displayName}</Text>
-          <Text style={styles.userPhone}>{phoneNumber}</Text>
+          <Text style={styles.userPhone}>{userEmail}</Text>
         </View>
 
         {/* ABOUT Section */}

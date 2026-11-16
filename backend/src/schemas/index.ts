@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
 export const SendOtpSchema = z.object({
-  phoneNumber: z.string().min(6, 'Invalid phone number'),
+  email: z.string().email('Please enter a valid email address'),
 });
 
 export const VerifyOtpSchema = z.object({
-  phoneNumber: z.string().min(6, 'Invalid phone number'),
+  email: z.string().email('Please enter a valid email address'),
   code: z.string().length(6, 'OTP must be 6 digits'),
 });
 
 export const UpdateProfileSchema = z.object({
-  displayName: z.string().min(2, 'Name is too short').max(50),
+  displayName: z.string().min(2, 'Name is too short').max(50).optional(),
   about: z.string().max(160).optional(),
   avatarUrl: z.string().url().optional(),
 });

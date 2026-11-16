@@ -3,7 +3,7 @@ import { Chat, CallLogItem, ContactItem, Message, User } from '../types';
 export const CURRENT_USER: User = {
   id: 'user_me',
   name: 'Alex Johnson',
-  phone: '+1 (555) 000-1234',
+  email: 'alex@cockatiel.app',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
   about: 'Living life one bubble at a time 🫧 | Exploring the world 🌍',
   isOnline: true,
