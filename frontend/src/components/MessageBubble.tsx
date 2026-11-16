@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { CheckCheck } from 'lucide-react-native';
 import { Message } from '../types';
 import { COLORS } from '../constants/theme';
@@ -8,11 +8,13 @@ import { Avatar } from './Avatar';
 interface MessageBubbleProps {
   message: Message;
   showAvatar?: boolean;
+  onImagePress?: (uri: string) => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   showAvatar = true,
+  onImagePress,
 }) => {
   const isOutgoing = message.isOutgoing;
 
@@ -42,9 +44,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ]}
         >
           {message.imageUrl && (
-            <View style={styles.imageWrapper}>
+            <TouchableOpacity
+              style={styles.imageWrapper}
+              onPress={() => onImagePress?.(message.imageUrl!)}
+              activeOpacity={0.85}
+            >
               <Image source={{ uri: message.imageUrl }} style={styles.mediaImage} />
-            </View>
+            </TouchableOpacity>
           )}
 
           {message.caption && (

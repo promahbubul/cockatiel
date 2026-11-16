@@ -52,7 +52,11 @@ export default function ProfileScreen() {
           <Text style={styles.sectionHeader}>PREFERENCES</Text>
           <View style={styles.card}>
             {/* Notifications */}
-            <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/settings/notifications')}
+              activeOpacity={0.7}
+            >
               <View style={[styles.menuIconContainer, { backgroundColor: '#E8F1FF' }]}>
                 <Bell size={20} color={COLORS.primary} />
               </View>
@@ -66,7 +70,11 @@ export default function ProfileScreen() {
             <View style={styles.divider} />
 
             {/* Privacy */}
-            <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/settings/privacy')}
+              activeOpacity={0.7}
+            >
               <View style={[styles.menuIconContainer, { backgroundColor: '#F3E8FF' }]}>
                 <Shield size={20} color="#9333EA" />
               </View>

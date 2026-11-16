@@ -67,7 +67,11 @@ export default function ConversationScreen() {
           <ChevronLeft size={28} color={COLORS.text} />
         </TouchableOpacity>
 
-        <View style={styles.headerUser}>
+        <TouchableOpacity
+          style={styles.headerUser}
+          onPress={() => router.push(`/chat-info/${id || 'chat_1'}`)}
+          activeOpacity={0.8}
+        >
           <Avatar
             uri="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80"
             size={40}
@@ -77,13 +81,21 @@ export default function ConversationScreen() {
             <Text style={styles.headerName}>Emma Watson</Text>
             <Text style={styles.headerStatus}>Online</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerActionButton}>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={() => router.push({ pathname: '/call/ringing', params: { name: 'Emma Watson', type: 'audio' } })}
+            activeOpacity={0.7}
+          >
             <Phone size={22} color={COLORS.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionButton}>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={() => router.push({ pathname: '/call/ringing', params: { name: 'Emma Watson', type: 'video' } })}
+            activeOpacity={0.7}
+          >
             <Video size={24} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
@@ -106,7 +118,12 @@ export default function ConversationScreen() {
               </View>
             </View>
           }
-          renderItem={({ item }) => <MessageBubble message={item} />}
+          renderItem={({ item }) => (
+            <MessageBubble
+              message={item}
+              onImagePress={(uri) => router.push({ pathname: '/media-viewer', params: { uri } })}
+            />
+          )}
           contentContainerStyle={styles.messageListContent}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}

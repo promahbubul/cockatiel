@@ -46,7 +46,14 @@ export default function NewMessageScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Quick Action Rows */}
-        <TouchableOpacity style={styles.actionRow} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionRow}
+          onPress={() => {
+            router.back();
+            router.push('/group/create');
+          }}
+          activeOpacity={0.7}
+        >
           <View style={styles.actionIconContainer}>
             <Users size={22} color={COLORS.primary} />
           </View>
