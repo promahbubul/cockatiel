@@ -1,0 +1,47 @@
+import { z } from 'zod';
+
+export const SendOtpSchema = z.object({
+  phoneNumber: z.string().min(6, 'Invalid phone number'),
+});
+
+export const VerifyOtpSchema = z.object({
+  phoneNumber: z.string().min(6, 'Invalid phone number'),
+  code: z.string().length(6, 'OTP must be 6 digits'),
+});
+
+export const UpdateProfileSchema = z.object({
+  displayName: z.string().min(2, 'Name is too short').max(50),
+  about: z.string().max(160).optional(),
+  avatarUrl: z.string().url().optional(),
+});
+
+export const CreateDirectChatSchema = z.object({
+  recipientId: z.string().min(1, 'Recipient ID is required'),
+});
+
+export const CreateGroupChatSchema = z.object({
+  groupName: z.string().min(2, 'Group name too short').max(60),
+  groupAvatar: z.string().url().optional(),
+  memberIds: z.array(z.string()).min(1, 'Group must have at least one member'),
+});
+
+export const SendMessageSchema = z.object({
+  chatId: z.string().min(1, 'Chat ID is required'),
+  content: z.string().optional(),
+  mediaUrl: z.string().url().optional(),
+  mediaType: z.enum(['IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT']).optional(),
+  caption: z.string().optional(),
+});
+
+export const ReactMessageSchema = z.object({
+  messageId: z.string().min(1),
+  emoji: z.string().min(1),
+});
+
+export const LogCallSchema = z.object({
+  receiverId: z.string().min(1),
+  callType: z.enum(['audio', 'video']),
+  direction: z.enum(['incoming', 'outgoing', 'missed']),
+  duration: z.string().optional(),
+  roomName: z.string().min(1),
+});

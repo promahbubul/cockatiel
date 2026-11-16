@@ -13,9 +13,9 @@ Task 3: [DONE]
 
 
 -------------- Backend ----------------
-Task 1: [PENDING]
+Task 1: [DONE]
     Ammader applicaiton er jonnno full backend ready koro sugin db mongodb.
     tumi sort e quick kaj korer jonno ja ja tools and packages lage rapis and best segula use korba akhon just discusison kortasi kono coding kortasi na. kono coding korba namespace. just bolo ki ki tenology use korba. 
 
-Task 2: [PENDING]
+Task 2: [DONE]
     tumi akhon proper details e plan ready koro. 

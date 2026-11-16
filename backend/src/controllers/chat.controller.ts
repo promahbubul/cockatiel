@@ -1,0 +1,177 @@
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { Types } from 'mongoose';
+import { Chat } from '../models/Chat.js';
+import { CreateDirectChatSchema, CreateGroupChatSchema } from '../schemas/index.js';
+
+export async function getChats(request: FastifyRequest, reply: FastifyReply) {
+  const currentUserId = (request as any).user.userId;
+
+  const chats = await Chat.find({
+    participants: new Types.ObjectId(currentUserId),
+  })
+    .populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  return reply.send({
+    success: true,
+    chats: chats.map((chat: any) => {
+      // For direct chats, the other participant is the chat partner
+      const otherUser = !chat.isGroup
+        ? chat.participants.find((p: any) => p._id.toString() !== currentUserId)
+        : null;
+
+      return {
+        id: chat._id.toString(),
+        isGroup: chat.isGroup,
+        title: chat.isGroup ? chat.groupName : (otherUser?.displayName || 'Direct Chat'),
+        avatarUrl: chat.isGroup ? chat.groupAvatar : (otherUser?.avatarUrl || ''),
+        participants: chat.participants.map((p: any) => ({
+          id: p._id.toString(),
+          displayName: p.displayName,
+          phoneNumber: p.phoneNumber,
+          avatarUrl: p.avatarUrl,
+          isOnline: p.isOnline,
+        })),
+        lastMessage: chat.lastMessage
+          ? {
+              text: chat.lastMessage.text,
+              timestamp: chat.lastMessage.timestamp,
+              isMe: chat.lastMessage.senderId?.toString() === currentUserId,
+            }
+          : null,
+        unreadCount: (chat.unreadCounts && (chat.unreadCounts[currentUserId] || (chat.unreadCounts as any).get?.(currentUserId))) || 0,
+        updatedAt: chat.updatedAt,
+      };
+    }),
+  });
+}
+
+export async function getChatById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  const currentUserId = (request as any).user.userId;
+  const { id } = request.params;
+
+  const chat = await Chat.findOne({
+    _id: id,
+    participants: new Types.ObjectId(currentUserId),
+  })
+    .populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen about')
+    .lean();
+
+  if (!chat) {
+    return reply.status(404).send({ error: 'Chat not found' });
+  }
+
+  const otherUser = !chat.isGroup
+    ? (chat.participants as any[]).find((p: any) => p._id.toString() !== currentUserId)
+    : null;
+
+  return reply.send({
+    success: true,
+    chat: {
+      id: chat._id.toString(),
+      isGroup: chat.isGroup,
+      title: chat.isGroup ? chat.groupName : (otherUser?.displayName || 'Direct Chat'),
+      avatarUrl: chat.isGroup ? chat.groupAvatar : (otherUser?.avatarUrl || ''),
+      participants: (chat.participants as any[]).map((p: any) => ({
+        id: p._id.toString(),
+        displayName: p.displayName,
+        phoneNumber: p.phoneNumber,
+        avatarUrl: p.avatarUrl,
+        isOnline: p.isOnline,
+        about: p.about,
+      })),
+      lastMessage: chat.lastMessage,
+      unreadCount: (chat.unreadCounts && (chat.unreadCounts[currentUserId] || (chat.unreadCounts as any).get?.(currentUserId))) || 0,
+      createdAt: chat.createdAt,
+    },
+  });
+}
+
+export async function createDirectChat(request: FastifyRequest, reply: FastifyReply) {
+  const currentUserId = (request as any).user.userId;
+  const result = CreateDirectChatSchema.safeParse(request.body);
+  if (!result.success) {
+    return reply.status(400).send({ error: result.error.errors[0].message });
+  }
+
+  const { recipientId } = result.data;
+  if (recipientId === currentUserId) {
+    return reply.status(400).send({ error: 'Cannot start chat with yourself' });
+  }
+
+  // Check if a direct chat between these two already exists
+  let chat = await Chat.findOne({
+    isGroup: false,
+    participants: { $all: [new Types.ObjectId(currentUserId), new Types.ObjectId(recipientId)] },
+  }).populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen');
+
+  if (!chat) {
+    chat = await Chat.create({
+      isGroup: false,
+      participants: [new Types.ObjectId(currentUserId), new Types.ObjectId(recipientId)],
+      unreadCounts: new Map([[currentUserId, 0], [recipientId, 0]]),
+    });
+    chat = await chat.populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen');
+  }
+
+  return reply.send({
+    success: true,
+    chat: {
+      id: chat._id.toString(),
+      isGroup: chat.isGroup,
+      participants: (chat.participants as any[]).map((p: any) => ({
+        id: p._id.toString(),
+        displayName: p.displayName,
+        phoneNumber: p.phoneNumber,
+        avatarUrl: p.avatarUrl,
+        isOnline: p.isOnline,
+      })),
+    },
+  });
+}
+
+export async function createGroupChat(request: FastifyRequest, reply: FastifyReply) {
+  const currentUserId = (request as any).user.userId;
+  const result = CreateGroupChatSchema.safeParse(request.body);
+  if (!result.success) {
+    return reply.status(400).send({ error: result.error.errors[0].message });
+  }
+
+  const { groupName, groupAvatar, memberIds } = result.data;
+  const allParticipantIds = Array.from(new Set([currentUserId, ...memberIds])).map(
+    (id) => new Types.ObjectId(id)
+  );
+
+  const initialUnread = new Map();
+  allParticipantIds.forEach((id) => initialUnread.set(id.toString(), 0));
+
+  let chat = await Chat.create({
+    isGroup: true,
+    groupName,
+    groupAvatar:
+      groupAvatar ||
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=200&auto=format&fit=crop&q=80',
+    participants: allParticipantIds,
+    admins: [new Types.ObjectId(currentUserId)],
+    unreadCounts: initialUnread,
+  });
+
+  chat = await chat.populate('participants', 'displayName phoneNumber avatarUrl isOnline lastSeen');
+
+  return reply.send({
+    success: true,
+    chat: {
+      id: chat._id.toString(),
+      isGroup: true,
+      title: chat.groupName,
+      avatarUrl: chat.groupAvatar,
+      participants: (chat.participants as any[]).map((p: any) => ({
+        id: p._id.toString(),
+        displayName: p.displayName,
+        phoneNumber: p.phoneNumber,
+        avatarUrl: p.avatarUrl,
+      })),
+    },
+  });
+}
