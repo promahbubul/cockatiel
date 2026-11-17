@@ -48,7 +48,11 @@ export default function RootLayout() {
         {/* Auth Flow */}
         <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
         <Stack.Screen name="auth/login" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="auth/register" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="auth/verify-email" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="auth/otp" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="auth/forgot-password" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="auth/reset-password" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="auth/setup-profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
 
         {/* Calling Interfaces */}

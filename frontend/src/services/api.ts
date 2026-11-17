@@ -54,6 +54,42 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const api = {
   // Auth
   auth: {
+    // 1. Register
+    register: (payload: { displayName: string; email: string; password: string }) =>
+      request<{ success: boolean; message: string; demoCode?: string }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    // 2. Login (Email + Password)
+    login: (payload: { email: string; password: string }) =>
+      request<{ success: boolean; token: string; user: any }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    // 3. Verify Email OTP
+    verifyEmail: (payload: { email: string; code: string }) =>
+      request<{ success: boolean; token: string; user: any }>('/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    // 4. Forgot Password
+    forgotPassword: (email: string) =>
+      request<{ success: boolean; message: string; demoCode?: string }>('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+
+    // 5. Reset Password
+    resetPassword: (payload: { email: string; code: string; newPassword: string }) =>
+      request<{ success: boolean; message: string }>('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    // Legacy / Quick OTP
     sendOtp: (email: string) =>
       request<{ success: boolean; message: string; demoCode?: string }>('/auth/send-otp', {
         method: 'POST',

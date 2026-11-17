@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import { User } from './models/User.js';
 import { Chat } from './models/Chat.js';
@@ -22,42 +23,54 @@ export async function seedDatabase() {
     CallLog.deleteMany({}),
   ]);
 
-  console.log('[Seed] Inserting users with emails...');
+  const defaultPassword = await bcrypt.hash('password123', 10);
+
+  console.log('[Seed] Inserting users with emails and passwords...');
   const users = await User.insertMany([
     {
       email: 'alex@cockatiel.app',
+      password: defaultPassword,
       displayName: 'Alex Johnson',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
       about: 'Living life one bubble at a time 🫧 | Exploring the world 🌍',
+      isVerified: true,
       isOnline: true,
     },
     {
       email: 'emma@cockatiel.app',
+      password: defaultPassword,
       displayName: 'Emma Watson',
       avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
       about: 'Hey there! I am using Cockatiel 🦜',
+      isVerified: true,
       isOnline: true,
     },
     {
       email: 'lucas@cockatiel.app',
+      password: defaultPassword,
       displayName: 'Lucas Chen',
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
       about: 'Music producer 🎵 & Coffee enthusiast ☕',
+      isVerified: true,
       isOnline: false,
       lastSeen: new Date(Date.now() - 3600 * 1000 * 4),
     },
     {
       email: 'mia@cockatiel.app',
+      password: defaultPassword,
       displayName: 'Mia Wong',
       avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&auto=format&fit=crop&q=80',
       about: 'Frontend developer 💻 | Tech lover',
+      isVerified: true,
       isOnline: true,
     },
     {
       email: 'oliver@cockatiel.app',
+      password: defaultPassword,
       displayName: 'Oliver Smith',
       avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
       about: 'Photography & traveling 📷✈️',
+      isVerified: true,
       isOnline: true,
     },
   ]);
@@ -170,7 +183,7 @@ export async function seedDatabase() {
     },
   ]);
 
-  console.log('✅ Database seeded with email accounts successfully!');
+  console.log('✅ Database seeded with email accounts and passwords successfully!');
   await mongoose.disconnect();
 }
 

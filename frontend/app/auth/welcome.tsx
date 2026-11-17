@@ -45,15 +45,23 @@ export default function WelcomeScreen() {
           </View>
         </View>
 
-        {/* CTA Button */}
+        {/* CTA Buttons */}
         <View style={styles.footerSection}>
           <TouchableOpacity
             style={styles.ctaButton}
-            onPress={() => router.push('/auth/login')}
+            onPress={() => router.push('/auth/register')}
             activeOpacity={0.8}
           >
             <Text style={styles.ctaText}>Get Started</Text>
             <ArrowRight size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.loginSecondaryButton}
+            onPress={() => router.push('/auth/login')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.loginSecondaryText}>I already have an account</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -156,5 +164,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginRight: 8,
+  },
+  loginSecondaryButton: {
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  loginSecondaryText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
 });
