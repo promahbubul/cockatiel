@@ -83,7 +83,7 @@ export default function ChatsScreen() {
           onPress={() => router.push('/new-message')}
           activeOpacity={0.8}
         >
-          <SquarePen size={20} color={COLORS.text} />
+          <SquarePen size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
@@ -152,38 +152,41 @@ export default function ChatsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 8,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: -0.5,
   },
   actionButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.surface,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFD6C4',
   },
   searchContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
   storiesSection: {
     paddingTop: 12,
-    paddingBottom: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: COLORS.border,
   },
   storiesContent: {
     paddingHorizontal: 16,

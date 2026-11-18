@@ -87,7 +87,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               {message.timestamp}
             </Text>
             {isOutgoing && message.isRead && (
-              <CheckCheck size={14} color="#60A5FA" style={styles.checkIcon} />
+              <CheckCheck size={14} color="#FEF3C7" style={styles.checkIcon} />
             )}
           </View>
 
@@ -115,7 +115,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    marginVertical: 6,
+    marginVertical: 5,
     paddingHorizontal: 16,
     alignItems: 'flex-end',
   },
@@ -134,27 +134,41 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   bubble: {
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 18,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
   },
+  // Feather-arch incoming bubble: soft warm cream with delicate outline
   incomingBubble: {
-    backgroundColor: '#F0F2F5',
-    borderBottomLeftRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E5DD',
+    borderTopLeftRadius: 5,
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
+  // Feather-arch outgoing bubble: rich cockatiel sunset coral
   outgoingBubble: {
     backgroundColor: COLORS.primary,
-    borderBottomRightRadius: 6,
+    borderTopRightRadius: 5,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 2,
   },
   mediaBubble: {
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingHorizontal: 6,
+    paddingTop: 6,
+    paddingBottom: 8,
   },
   imageWrapper: {
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   mediaImage: {
     width: 240,
@@ -166,10 +180,10 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   captionText: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   incomingText: {
-    color: '#111827',
+    color: COLORS.text,
   },
   outgoingText: {
     color: '#FFFFFF',
@@ -189,10 +203,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   timestampIncoming: {
-    color: '#9CA3AF',
+    color: COLORS.textSecondary,
   },
   timestampOutgoing: {
-    color: '#E0E7FF',
+    color: '#FFE2D5',
   },
   checkIcon: {
     marginLeft: 4,
@@ -206,13 +220,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#1C1917',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#E8E5DD',
   },
   reactionBadgeIncoming: {
     right: -8,

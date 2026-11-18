@@ -135,7 +135,7 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background,
   },
   keyboardContainer: {
     flex: 1,
@@ -160,10 +160,12 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FFD6C4',
   },
   titleSection: {
     marginBottom: 28,
@@ -207,17 +209,18 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   hintBox: {
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#FEF3C7',
     borderRadius: 10,
     padding: 12,
     marginTop: 20,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: '#FDE68A',
   },
   hintText: {
     fontSize: 13,
-    color: '#0369A1',
+    color: '#92400E',
     lineHeight: 18,
+    fontWeight: '500',
   },
   hintBold: {
     fontWeight: '700',

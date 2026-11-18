@@ -36,10 +36,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.inputBackground,
-    borderRadius: 24,
+    backgroundColor: COLORS.surface,
+    borderRadius: 22,
     paddingHorizontal: 16,
     height: 44,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   icon: {
     marginRight: 10,

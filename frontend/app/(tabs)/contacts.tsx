@@ -87,7 +87,7 @@ export default function ContactsScreen() {
           onPress={() => router.push('/new-message')}
           activeOpacity={0.8}
         >
-          <UserPlus size={20} color={COLORS.text} />
+          <UserPlus size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
@@ -130,32 +130,35 @@ export default function ContactsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 8,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: -0.5,
   },
   actionButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.surface,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFD6C4',
   },
   searchContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
   listWrapper: {
     flex: 1,
@@ -166,12 +169,14 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     backgroundColor: COLORS.surface,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: COLORS.primary,
   },
 });

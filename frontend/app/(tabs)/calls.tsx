@@ -71,7 +71,7 @@ export default function CallsScreen() {
           onPress={() => router.push('/new-message')}
           activeOpacity={0.8}
         >
-          <PhoneCall size={20} color={COLORS.text} />
+          <PhoneCall size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
@@ -155,28 +155,31 @@ export default function CallsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 8,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: -0.5,
   },
   actionButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.surface,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFD6C4',
   },
   segmentedContainer: {
     paddingHorizontal: 16,
@@ -185,21 +188,23 @@ const styles = StyleSheet.create({
   segmentedTrack: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   segmentTab: {
     flex: 1,
-    paddingVertical: 7,
+    paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 9,
   },
   activeSegmentTab: {
-    backgroundColor: COLORS.white,
-    shadowColor: '#000',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1C1917',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
     elevation: 2,
   },
   segmentText: {
@@ -208,8 +213,8 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   activeSegmentText: {
-    color: COLORS.text,
-    fontWeight: '600',
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   listContent: {
     paddingVertical: 4,

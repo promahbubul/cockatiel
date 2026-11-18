@@ -125,9 +125,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   durationText: {
-    color: '#CBD5E1',
+    color: '#FBBF24',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 2,
   },
   selfVideoContainer: {
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#FBBF24',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

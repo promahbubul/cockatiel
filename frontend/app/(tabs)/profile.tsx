@@ -164,7 +164,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background,
   },
   content: {
     paddingBottom: 40,
@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 3,
-    borderColor: COLORS.primary,
+    borderWidth: 3.5,
+    borderColor: COLORS.accentGold,
   },
   cameraBadge: {
     position: 'absolute',
@@ -215,6 +215,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#FFFFFF',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
   },
   userName: {
     fontSize: 24,
@@ -240,9 +245,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   aboutCard: {
-    backgroundColor: COLORS.inputBackground,
+    backgroundColor: COLORS.surface,
     borderRadius: 18,
     padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   aboutText: {
     fontSize: 15,
@@ -254,9 +261,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: COLORS.border,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#1C1917',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,

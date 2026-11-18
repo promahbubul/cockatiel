@@ -87,7 +87,7 @@ export default function AudioCallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#181615',
     justifyContent: 'space-between',
     paddingVertical: 32,
     paddingHorizontal: 24,
@@ -104,8 +104,8 @@ const styles = StyleSheet.create({
   },
   durationText: {
     fontSize: 16,
-    color: '#94A3B8',
-    fontWeight: '600',
+    color: '#FBBF24',
+    fontWeight: '700',
     letterSpacing: 1,
   },
   centerSection: {
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70,
     borderWidth: 4,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(251, 191, 36, 0.4)',
   },
   bottomSection: {
     alignItems: 'center',

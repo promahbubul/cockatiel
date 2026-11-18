@@ -58,8 +58,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   storyRing: {
-    borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderWidth: 2.5,
+    borderColor: COLORS.accentGold,
   },
   image: {
     resizeMode: 'cover',
@@ -69,5 +69,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.online,
     borderWidth: 2,
     borderColor: '#FFFFFF',
+    shadowColor: COLORS.online,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

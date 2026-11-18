@@ -13,7 +13,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: COLORS.textSecondary,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopColor: '#F3F4F6',
+          borderTopColor: COLORS.border,
           borderTopWidth: 1,
           height: 64,
           paddingBottom: 8,
@@ -88,8 +88,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -8,
     width: 24,
-    height: 3,
-    backgroundColor: COLORS.primary,
+    height: 3.5,
+    backgroundColor: COLORS.accentGold,
     borderRadius: 2,
   },
 });

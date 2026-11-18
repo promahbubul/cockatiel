@@ -181,7 +181,7 @@ export default function VerifyEmailScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -207,10 +207,12 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FFD6C4',
   },
   title: {
     fontSize: 26,
@@ -285,18 +287,19 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   hintBox: {
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#FEF3C7',
     borderRadius: 10,
     padding: 12,
     marginTop: 24,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: '#FDE68A',
     width: '100%',
   },
   hintText: {
     fontSize: 13,
-    color: '#0369A1',
+    color: '#92400E',
     textAlign: 'center',
+    fontWeight: '500',
   },
   hintBold: {
     fontWeight: '700',

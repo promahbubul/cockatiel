@@ -10,6 +10,8 @@ interface ChatListItemProps {
 }
 
 export const ChatListItem: React.FC<ChatListItemProps> = ({ chat, onPress }) => {
+  const hasUnread = !!chat.unreadCount && chat.unreadCount > 0;
+
   return (
     <TouchableOpacity
       style={styles.container}
@@ -18,7 +20,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ chat, onPress }) => 
     >
       <Avatar
         uri={chat.avatar}
-        size={56}
+        size={54}
         isOnline={chat.isOnline}
       />
       
@@ -27,14 +29,19 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ chat, onPress }) => 
           <Text style={styles.name} numberOfLines={1}>
             {chat.name}
           </Text>
-          <Text style={styles.timestamp}>{chat.timestamp}</Text>
+          <Text style={[styles.timestamp, hasUnread && styles.timestampUnread]}>
+            {chat.timestamp}
+          </Text>
         </View>
 
         <View style={styles.bottomRow}>
-          <Text style={styles.lastMessage} numberOfLines={1}>
+          <Text
+            style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]}
+            numberOfLines={1}
+          >
             {chat.lastMessage}
           </Text>
-          {!!chat.unreadCount && chat.unreadCount > 0 && (
+          {hasUnread && (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadText}>{chat.unreadCount}</Text>
             </View>
@@ -51,6 +58,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 20,
+    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,
@@ -72,8 +80,12 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: COLORS.primary,
+    color: COLORS.textSecondary,
     fontWeight: '500',
+  },
+  timestampUnread: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   bottomRow: {
     flexDirection: 'row',
@@ -86,14 +98,23 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  lastMessageUnread: {
+    color: COLORS.text,
+    fontWeight: '600',
+  },
   unreadBadge: {
-    backgroundColor: COLORS.unreadBadge,
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     minWidth: 20,
     height: 20,
     paddingHorizontal: 6,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    elevation: 2,
   },
   unreadText: {
     color: '#FFFFFF',

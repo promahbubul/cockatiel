@@ -71,7 +71,7 @@ export default function RingingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#181615',
     justifyContent: 'space-between',
     paddingVertical: 36,
     paddingHorizontal: 24,
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 15,
-    color: '#94A3B8',
+    color: '#D6D3D1',
     fontWeight: '600',
     marginBottom: 8,
     letterSpacing: 0.5,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     width: 210,
     height: 210,
     borderRadius: 105,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(251, 191, 36, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     width: 170,
     height: 170,
     borderRadius: 85,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 107, 53, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -116,6 +116,8 @@ const styles = StyleSheet.create({
     width: 130,
     height: 130,
     borderRadius: 65,
+    borderWidth: 3,
+    borderColor: '#FBBF24',
   },
   bottomSection: {
     marginBottom: 20,

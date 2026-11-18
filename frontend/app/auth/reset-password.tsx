@@ -256,7 +256,7 @@ export default function ResetPasswordScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background,
   },
   keyboardContainer: {
     flex: 1,
@@ -379,17 +379,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   hintBox: {
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#FEF3C7',
     borderRadius: 10,
     padding: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: '#FDE68A',
   },
   hintText: {
     fontSize: 13,
-    color: '#0369A1',
+    color: '#92400E',
     textAlign: 'center',
+    fontWeight: '500',
   },
   hintBold: {
     fontWeight: '700',
