@@ -4,6 +4,7 @@ import { Message } from '../models/Message.js';
 import { Chat } from '../models/Chat.js';
 import { SendMessageSchema, ReactMessageSchema } from '../schemas/index.js';
 import { uploadToCloudinary } from '../config/cloudinary.js';
+import { getIO } from '../sockets/index.js';
 
 export async function getMessages(request: FastifyRequest, reply: FastifyReply) {
   const currentUserId = (request as any).user.userId;
@@ -97,23 +98,38 @@ export async function sendMessage(request: FastifyRequest, reply: FastifyReply) 
 
   const populated = await message.populate('senderId', 'displayName avatarUrl');
 
+  const formattedMsg = {
+    id: populated._id.toString(),
+    chatId: populated.chatId.toString(),
+    senderId: currentUserId,
+    senderName: (populated.senderId as any)?.displayName || 'User',
+    senderAvatar: (populated.senderId as any)?.avatarUrl || '',
+    isMe: true,
+    content: populated.content,
+    mediaUrl: populated.mediaUrl,
+    mediaType: populated.mediaType,
+    caption: populated.caption,
+    status: populated.status,
+    reactions: populated.reactions,
+    createdAt: populated.createdAt,
+  };
+
+  // Real-time broadcast
+  const io = getIO();
+  if (io) {
+    io.to(`chat:${chatId}`).emit('message:new', formattedMsg);
+    chat.participants.forEach((pId) => {
+      io.to(`user:${pId.toString()}`).emit('message:new', formattedMsg);
+      io.to(`user:${pId.toString()}`).emit('chat:update', {
+        chatId,
+        lastMessage: chat.lastMessage,
+      });
+    });
+  }
+
   return reply.send({
     success: true,
-    message: {
-      id: populated._id.toString(),
-      chatId: populated.chatId.toString(),
-      senderId: currentUserId,
-      senderName: (populated.senderId as any)?.displayName || 'User',
-      senderAvatar: (populated.senderId as any)?.avatarUrl || '',
-      isMe: true,
-      content: populated.content,
-      mediaUrl: populated.mediaUrl,
-      mediaType: populated.mediaType,
-      caption: populated.caption,
-      status: populated.status,
-      reactions: populated.reactions,
-      createdAt: populated.createdAt,
-    },
+    message: formattedMsg,
   });
 }
 

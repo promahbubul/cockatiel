@@ -71,7 +71,7 @@ export default function ConversationScreen() {
             });
           }
 
-          if (msgRes?.success && msgRes.messages && msgRes.messages.length > 0) {
+          if (msgRes?.success && msgRes.messages) {
             const mapped: Message[] = msgRes.messages.map((m: any) => ({
               id: m.id,
               chatId: m.chatId,
@@ -297,6 +297,15 @@ export default function ConversationScreen() {
           )}
           contentContainerStyle={styles.messageListContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyConversationContainer}>
+              <Avatar uri={chatInfo.avatarUrl} size={80} isOnline={chatInfo.isOnline} />
+              <Text style={styles.emptyConversationTitle}>{chatInfo.title}</Text>
+              <Text style={styles.emptyConversationSubtitle}>
+                Wave hello and start your conversation with {chatInfo.title}! 🦜
+              </Text>
+            </View>
+          }
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
@@ -471,5 +480,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 4,
     elevation: 3,
+  },
+  emptyConversationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 30,
+  },
+  emptyConversationTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginTop: 16,
+  },
+  emptyConversationSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
 });

@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { Types } from 'mongoose';
 import { Chat } from '../models/Chat.js';
 import { CreateDirectChatSchema, CreateGroupChatSchema } from '../schemas/index.js';
+import { getIO } from '../sockets/index.js';
 
 export async function getChats(request: FastifyRequest, reply: FastifyReply) {
   const currentUserId = (request as any).user.userId;
@@ -115,19 +116,27 @@ export async function createDirectChat(request: FastifyRequest, reply: FastifyRe
     chat = await chat.populate('participants', 'displayName email avatarUrl isOnline lastSeen');
   }
 
+  const chatPayload = {
+    id: chat._id.toString(),
+    isGroup: chat.isGroup,
+    participants: (chat.participants as any[]).map((p: any) => ({
+      id: p._id.toString(),
+      displayName: p.displayName,
+      email: p.email,
+      avatarUrl: p.avatarUrl,
+      isOnline: p.isOnline,
+    })),
+  };
+
+  const io = getIO();
+  if (io) {
+    io.to(`user:${currentUserId}`).emit('chat:created', chatPayload);
+    io.to(`user:${recipientId}`).emit('chat:created', chatPayload);
+  }
+
   return reply.send({
     success: true,
-    chat: {
-      id: chat._id.toString(),
-      isGroup: chat.isGroup,
-      participants: (chat.participants as any[]).map((p: any) => ({
-        id: p._id.toString(),
-        displayName: p.displayName,
-        email: p.email,
-        avatarUrl: p.avatarUrl,
-        isOnline: p.isOnline,
-      })),
-    },
+    chat: chatPayload,
   });
 }
 

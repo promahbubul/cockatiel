@@ -1,7 +1,15 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { User } from '../models/User.js';
+import { Chat } from '../models/Chat.js';
+
+let ioInstance: SocketIOServer | null = null;
+
+export function getIO(): SocketIOServer | null {
+  return ioInstance;
+}
 
 export function setupSocketIO(io: SocketIOServer) {
+  ioInstance = io;
   // Map of userId -> Set of socket IDs for multi-device support
   const userSockets = new Map<string, Set<string>>();
 
@@ -46,8 +54,20 @@ export function setupSocketIO(io: SocketIOServer) {
     });
 
     // Real-time message dispatch
-    socket.on('message:send', (data: { chatId: string; message: any }) => {
+    socket.on('message:send', async (data: { chatId: string; message: any }) => {
       io.to(`chat:${data.chatId}`).emit('message:new', data.message);
+
+      // Also deliver to each participant's user room
+      try {
+        const chat = await Chat.findById(data.chatId).select('participants');
+        if (chat && chat.participants) {
+          chat.participants.forEach((pId) => {
+            io.to(`user:${pId.toString()}`).emit('message:new', data.message);
+          });
+        }
+      } catch (err) {
+        console.error('Error broadcasting message to participants:', err);
+      }
     });
 
     // WebRTC Calling Signaling

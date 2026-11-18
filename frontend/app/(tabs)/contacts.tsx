@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,11 @@ import {
   SectionList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { UserPlus } from 'lucide-react-native';
+import { UserPlus, Search } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONTACTS } from '../../src/constants/mockData';
 import { SearchBar } from '../../src/components/SearchBar';
@@ -21,7 +22,10 @@ export default function ContactsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [contacts, setContacts] = useState<ContactItem[]>(MOCK_CONTACTS);
+  const [searchResults, setSearchResults] = useState<ContactItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const searchTimeoutRef = useRef<any>(null);
 
   const fetchContacts = async () => {
     try {
@@ -52,6 +56,38 @@ export default function ContactsScreen() {
     setRefreshing(false);
   };
 
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    if (!text.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const res = await api.users.search(text.trim());
+        if (res.success && res.users) {
+          const mapped: ContactItem[] = res.users.map((u: any) => ({
+            id: u.id,
+            name: u.displayName,
+            avatar: u.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+            statusText: u.about || u.email,
+            isOnline: !!u.isOnline,
+            section: (u.displayName?.[0] || '#').toUpperCase(),
+          }));
+          setSearchResults(mapped);
+        }
+      } catch (err) {
+        console.error('Contact search error:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  };
+
   const handleStartChat = async (contact: ContactItem) => {
     try {
       const res = await api.chats.createDirect(contact.id);
@@ -65,16 +101,27 @@ export default function ContactsScreen() {
     router.push(`/conversation/chat_${contact.id}`);
   };
 
-  const filteredContacts = contacts.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.statusText.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const isQueryActive = searchQuery.trim().length > 0;
+
+  // If search query is active and we have backend search results, merge unique items
+  let activeList: ContactItem[];
+  if (isQueryActive) {
+    const localMatches = contacts.filter((c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.statusText.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    const seenIds = new Set(localMatches.map((c) => c.id));
+    const newFromSearch = searchResults.filter((r) => !seenIds.has(r.id));
+    activeList = [...localMatches, ...newFromSearch];
+  } else {
+    activeList = contacts;
+  }
 
   // Group contacts by section dynamically
-  const letters = Array.from(new Set(filteredContacts.map((c) => c.section))).sort();
+  const letters = Array.from(new Set(activeList.map((c) => c.section))).sort();
   const sections = letters.map((letter) => ({
     title: letter,
-    data: filteredContacts.filter((c) => c.section === letter),
+    data: activeList.filter((c) => c.section === letter),
   }));
 
   return (
@@ -94,10 +141,17 @@ export default function ContactsScreen() {
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <SearchBar
-          placeholder="Search contacts"
+          placeholder="Search contacts & users"
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearchChange}
         />
+        {isSearching && (
+          <ActivityIndicator
+            size="small"
+            color={COLORS.primary}
+            style={{ position: 'absolute', right: 30, top: 12 }}
+          />
+        )}
       </View>
 
       {/* Main Content with Alphabet Scrubber */}

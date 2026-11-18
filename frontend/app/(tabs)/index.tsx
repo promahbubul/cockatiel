@@ -53,12 +53,22 @@ export default function ChatsScreen() {
     fetchChats();
 
     // Real-time new message listener to refresh chat list preview
-    const unsubscribe = socketService.onNewMessage(() => {
+    const unsubscribeMessage = socketService.onNewMessage(() => {
+      fetchChats();
+    });
+
+    const unsubscribeChatCreated = socketService.onChatCreated(() => {
+      fetchChats();
+    });
+
+    const unsubscribeChatUpdate = socketService.onChatUpdate(() => {
       fetchChats();
     });
 
     return () => {
-      unsubscribe?.();
+      unsubscribeMessage?.();
+      unsubscribeChatCreated?.();
+      unsubscribeChatUpdate?.();
     };
   }, []);
 

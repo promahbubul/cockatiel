@@ -84,6 +84,16 @@ class SocketService {
     return () => this.socket?.off('user:status', callback);
   }
 
+  onChatCreated(callback: (chat: any) => void) {
+    this.socket?.on('chat:created', callback);
+    return () => this.socket?.off('chat:created', callback);
+  }
+
+  onChatUpdate(callback: (data: { chatId: string; lastMessage: any }) => void) {
+    this.socket?.on('chat:update', callback);
+    return () => this.socket?.off('chat:update', callback);
+  }
+
   // WebRTC / Calling Signaling
   onIncomingCall(callback: (payload: any) => void) {
     this.socket?.on('call:incoming', callback);
