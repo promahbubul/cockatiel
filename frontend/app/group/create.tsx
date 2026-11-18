@@ -13,15 +13,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Camera, Check, X } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../../src/constants/theme';
 import { api } from '../../src/services/api';
 
 export default function CreateGroupScreen() {
   const router = useRouter();
   const [groupName, setGroupName] = useState('');
+  const [groupAvatar, setGroupAvatar] = useState<string>('');
   const [contacts, setContacts] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -50,6 +53,31 @@ export default function CreateGroupScreen() {
     );
   };
 
+  const handlePickGroupPhoto = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setIsUploadingPhoto(true);
+        const pickedUri = result.assets[0].uri;
+        const uploadRes = await api.media.upload(pickedUri, 'cockatiel/groups');
+        if (uploadRes.success && uploadRes.url) {
+          setGroupAvatar(uploadRes.url);
+        }
+      }
+    } catch (err: any) {
+      console.error('Group photo upload error:', err);
+      Alert.alert('Upload Failed', err.message || 'Could not upload group photo');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
   const handleCreate = async () => {
     if (!groupName.trim()) {
       Alert.alert('Required', 'Please enter a group name');
@@ -62,7 +90,7 @@ export default function CreateGroupScreen() {
 
     try {
       setIsSubmitting(true);
-      const res = await api.chats.createGroup(groupName.trim(), selectedIds);
+      const res = await api.chats.createGroup(groupName.trim(), selectedIds, groupAvatar || undefined);
       if (res.success && res.chat) {
         router.replace(`/conversation/${res.chat.id}`);
         return;
@@ -111,8 +139,19 @@ export default function CreateGroupScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Group Photo & Name row */}
         <View style={styles.groupInfoRow}>
-          <TouchableOpacity style={styles.avatarButton} activeOpacity={0.8}>
-            <Camera size={24} color={COLORS.primary} />
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={handlePickGroupPhoto}
+            disabled={isUploadingPhoto}
+            activeOpacity={0.8}
+          >
+            {isUploadingPhoto ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : groupAvatar ? (
+              <Image source={{ uri: groupAvatar }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+            ) : (
+              <Camera size={24} color={COLORS.primary} />
+            )}
           </TouchableOpacity>
 
           <View style={styles.nameInputContainer}>

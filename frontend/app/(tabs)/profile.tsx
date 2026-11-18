@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,21 +6,52 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { Camera, Bell, Shield, ChevronRight, Info, HeartHandshake, LogOut } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { CURRENT_USER } from '../../src/constants/mockData';
 import { useAuth } from '../../src/context/AuthContext';
+import { api } from '../../src/services/api';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     router.replace('/auth/welcome');
+  };
+
+  const handlePickAvatar = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setIsUploading(true);
+        const pickedUri = result.assets[0].uri;
+        const uploadRes = await api.media.upload(pickedUri, 'cockatiel/avatars');
+        if (uploadRes.success && uploadRes.url) {
+          await updateUser({ avatarUrl: uploadRes.url });
+          Alert.alert('Success', 'Profile photo updated successfully!');
+        }
+      }
+    } catch (err: any) {
+      console.error('Avatar upload error:', err);
+      Alert.alert('Error', err.message || 'Failed to update profile photo');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const displayName = user?.displayName || CURRENT_USER.name;
@@ -43,8 +74,17 @@ export default function ProfileScreen() {
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
             <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-            <TouchableOpacity style={styles.cameraBadge} activeOpacity={0.8}>
-              <Camera size={18} color="#FFFFFF" />
+            <TouchableOpacity
+              style={styles.cameraBadge}
+              onPress={handlePickAvatar}
+              disabled={isUploading}
+              activeOpacity={0.8}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Camera size={18} color="#FFFFFF" />
+              )}
             </TouchableOpacity>
           </View>
           <Text style={styles.userName}>{displayName}</Text>

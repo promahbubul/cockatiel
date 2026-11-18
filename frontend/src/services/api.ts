@@ -154,6 +154,49 @@ export const api = {
       }),
   },
 
+  // Media & Cloudinary Uploads
+  media: {
+    upload: async (uri: string, folder: string = 'cockatiel/chats') => {
+      const token = await getAuthToken();
+      const formData = new FormData();
+
+      if (Platform.OS === 'web') {
+        const fetchRes = await fetch(uri);
+        const blob = await fetchRes.blob();
+        formData.append('file', blob, 'image.jpg');
+      } else {
+        const filename = uri.split('/').pop() || 'image.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        formData.append('file', {
+          uri,
+          name: filename,
+          type,
+        } as any);
+      }
+
+      formData.append('folder', folder);
+
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/messages/upload?folder=${encodeURIComponent(folder)}`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Media upload failed');
+      }
+
+      return data as { success: boolean; url: string; publicId?: string };
+    },
+  },
+
   // Calls
   calls: {
     getCalls: () => request<{ success: boolean; calls: any[] }>('/calls'),

@@ -173,12 +173,16 @@ export async function uploadMedia(request: FastifyRequest, reply: FastifyReply) 
       return reply.status(400).send({ error: 'No file provided' });
     }
 
+    const folder = ((request.query as any)?.folder || (data.fields as any)?.folder?.value || 'cockatiel/chats') as string;
     const buffer = await data.toBuffer();
-    const result = await uploadToCloudinary(buffer, 'cockatiel/media');
+    const result = await uploadToCloudinary(buffer, folder);
 
     return reply.send({
       success: true,
       url: (result as any).secure_url || (result as any).url,
+      publicId: (result as any).public_id,
+      format: (result as any).format,
+      bytes: (result as any).bytes,
     });
   } catch (error: any) {
     return reply.status(500).send({ error: error.message || 'Media upload failed' });

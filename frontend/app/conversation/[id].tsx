@@ -8,9 +8,12 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
   ChevronLeft,
   Phone,
@@ -47,6 +50,7 @@ export default function ConversationScreen() {
 
   const [inputText, setInputText] = useState('');
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<any>(null);
 
@@ -214,6 +218,75 @@ export default function ConversationScreen() {
     }
   };
 
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const pickedUri = result.assets[0].uri;
+        setIsUploadingMedia(true);
+
+        const currentUserId = user?.id || CURRENT_USER.id;
+        const currentUserName = user?.displayName || CURRENT_USER.name;
+        const currentUserAvatar = user?.avatarUrl || CURRENT_USER.avatar;
+
+        const tempId = `msg_${Date.now()}`;
+        const localMessage: Message = {
+          id: tempId,
+          chatId,
+          senderId: currentUserId,
+          senderName: currentUserName,
+          senderAvatar: currentUserAvatar,
+          text: '',
+          imageUrl: pickedUri,
+          timestamp: 'Uploading...',
+          isOutgoing: true,
+          isRead: false,
+        };
+
+        setMessages((prev) => [...prev, localMessage]);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+
+        // Upload to Cloudinary folder 'cockatiel/chats'
+        const uploadRes = await api.media.upload(pickedUri, 'cockatiel/chats');
+        if (uploadRes.success && uploadRes.url) {
+          if (chatId.length === 24) {
+            const sendRes = await api.messages.send({
+              chatId,
+              mediaUrl: uploadRes.url,
+              mediaType: 'image',
+            });
+            if (sendRes.success && sendRes.message) {
+              socketService.emitMessage(chatId, sendRes.message);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === tempId ? { ...m, imageUrl: uploadRes.url, timestamp: 'Just now' } : m
+                )
+              );
+            }
+          } else {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempId ? { ...m, imageUrl: uploadRes.url, timestamp: 'Just now' } : m
+              )
+            );
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Pick and upload image error:', err);
+      Alert.alert('Upload Failed', err.message || 'Could not upload image to Cloudinary');
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Header */}
@@ -311,8 +384,17 @@ export default function ConversationScreen() {
 
         {/* Bottom Input Bar */}
         <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
-            <Plus size={22} color={COLORS.textSecondary} />
+          <TouchableOpacity
+            style={styles.attachButton}
+            onPress={handlePickImage}
+            disabled={isUploadingMedia}
+            activeOpacity={0.7}
+          >
+            {isUploadingMedia ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Plus size={22} color={COLORS.primary} />
+            )}
           </TouchableOpacity>
 
           <View style={styles.textInputWrapper}>
