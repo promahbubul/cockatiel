@@ -1,27 +1,143 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Phone, PhoneOff, Video } from 'lucide-react-native';
+import { socketService } from '../../src/services/socket';
+import { api } from '../../src/services/api';
 
 export default function RingingScreen() {
   const router = useRouter();
-  const { name, avatar, type, isIncoming } = useLocalSearchParams();
+  const {
+    name,
+    avatar,
+    type,
+    isIncoming,
+    toUserId,
+    fromUserId,
+    roomName: paramRoomName,
+  } = useLocalSearchParams();
 
-  const callerName = (name as string) || 'Emma Watson';
-  const callerAvatar = (avatar as string) || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80';
+  const callerName = (name as string) || 'User';
+  const callerAvatar =
+    (avatar as string) ||
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80';
   const isVideo = type === 'video';
   const incoming = isIncoming === 'true';
+  const targetUserId = (incoming ? fromUserId : toUserId) as string;
+  const roomName = (paramRoomName as string) || `room_${Date.now()}`;
+
+  const [callStatus, setCallStatus] = useState<string>(
+    incoming
+      ? isVideo
+        ? 'Incoming Video Call...'
+        : 'Incoming Audio Call...'
+      : 'Ringing...'
+  );
+
+  useEffect(() => {
+    // Listen if other party accepts
+    const unsubAccept = socketService.onCallAccepted(() => {
+      setCallStatus('Connected! Starting call...');
+      setTimeout(() => {
+        if (isVideo) {
+          router.replace({
+            pathname: '/call/video',
+            params: {
+              name: callerName,
+              avatar: callerAvatar,
+              toUserId: targetUserId,
+              roomName,
+              isCaller: 'true',
+            },
+          });
+        } else {
+          router.replace({
+            pathname: '/call/audio',
+            params: {
+              name: callerName,
+              avatar: callerAvatar,
+              toUserId: targetUserId,
+              roomName,
+              isCaller: 'true',
+            },
+          });
+        }
+      }, 500);
+    });
+
+    // Listen if call rejected
+    const unsubReject = socketService.onCallRejected((payload) => {
+      setCallStatus(`Call ${payload?.reason || 'declined'}`);
+      setTimeout(() => {
+        router.back();
+      }, 1200);
+    });
+
+    // Listen if caller cancelled / ended before answer
+    const unsubEnd = socketService.onCallEnded(() => {
+      setCallStatus('Call ended');
+      setTimeout(() => {
+        router.back();
+      }, 800);
+    });
+
+    return () => {
+      unsubAccept?.();
+      unsubReject?.();
+      unsubEnd?.();
+    };
+  }, [callerName, callerAvatar, isVideo, targetUserId, roomName]);
 
   const handleAccept = () => {
+    if (targetUserId) {
+      socketService.acceptCall({ toUserId: targetUserId, roomName });
+    }
+
     if (isVideo) {
-      router.replace({ pathname: '/call/video', params: { name: callerName, avatar: callerAvatar } });
+      router.replace({
+        pathname: '/call/video',
+        params: {
+          name: callerName,
+          avatar: callerAvatar,
+          toUserId: targetUserId,
+          roomName,
+          isCaller: 'false',
+        },
+      });
     } else {
-      router.replace({ pathname: '/call/audio', params: { name: callerName, avatar: callerAvatar } });
+      router.replace({
+        pathname: '/call/audio',
+        params: {
+          name: callerName,
+          avatar: callerAvatar,
+          toUserId: targetUserId,
+          roomName,
+          isCaller: 'false',
+        },
+      });
     }
   };
 
   const handleDecline = () => {
+    if (incoming) {
+      if (targetUserId) {
+        socketService.rejectCall({ toUserId: targetUserId, roomName, reason: 'declined' });
+        // Log missed call
+        api.calls
+          .logCall({
+            receiverId: targetUserId,
+            callType: isVideo ? 'video' : 'audio',
+            direction: 'missed',
+            roomName,
+          })
+          .catch(() => {});
+      }
+    } else {
+      if (targetUserId) {
+        socketService.endCall({ toUserId: targetUserId, roomName });
+      }
+    }
     router.back();
   };
 
@@ -29,9 +145,7 @@ export default function RingingScreen() {
     <SafeAreaView style={styles.container}>
       {/* Top Header */}
       <View style={styles.topSection}>
-        <Text style={styles.statusText}>
-          {incoming ? (isVideo ? 'Incoming Video Call...' : 'Incoming Audio Call...') : 'Ringing...'}
-        </Text>
+        <Text style={styles.statusText}>{callStatus}</Text>
         <Text style={styles.nameText}>{callerName}</Text>
       </View>
 
@@ -48,17 +162,29 @@ export default function RingingScreen() {
       <View style={styles.bottomSection}>
         {incoming ? (
           <View style={styles.actionsRow}>
-            <TouchableOpacity style={[styles.actionBtn, styles.declineBtn]} onPress={handleDecline}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.declineBtn]}
+              onPress={handleDecline}
+              activeOpacity={0.8}
+            >
               <PhoneOff size={28} color="#FFFFFF" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.actionBtn, styles.acceptBtn]} onPress={handleAccept}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.acceptBtn]}
+              onPress={handleAccept}
+              activeOpacity={0.8}
+            >
               {isVideo ? <Video size={28} color="#FFFFFF" /> : <Phone size={28} color="#FFFFFF" />}
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.singleActionRow}>
-            <TouchableOpacity style={[styles.actionBtn, styles.declineBtn]} onPress={handleDecline}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.declineBtn]}
+              onPress={handleDecline}
+              activeOpacity={0.8}
+            >
               <PhoneOff size={32} color="#FFFFFF" />
             </TouchableOpacity>
           </View>

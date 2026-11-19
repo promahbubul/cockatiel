@@ -105,6 +105,21 @@ class SocketService {
     return () => this.socket?.off('call:incoming', callback);
   }
 
+  onCallAccepted(callback: (payload: any) => void) {
+    this.socket?.on('call:accepted', callback);
+    return () => this.socket?.off('call:accepted', callback);
+  }
+
+  onCallRejected(callback: (payload: any) => void) {
+    this.socket?.on('call:rejected', callback);
+    return () => this.socket?.off('call:rejected', callback);
+  }
+
+  onCallEnded(callback: (payload: any) => void) {
+    this.socket?.on('call:ended', callback);
+    return () => this.socket?.off('call:ended', callback);
+  }
+
   initiateCall(payload: {
     toUserId: string;
     caller: { id: string; displayName: string; avatarUrl: string };

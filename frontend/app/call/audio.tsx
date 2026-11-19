@@ -1,24 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Mic, MicOff, Volume2, VolumeX, PhoneOff, MessageSquare } from 'lucide-react-native';
+import { socketService } from '../../src/services/socket';
+import { api } from '../../src/services/api';
 
 export default function AudioCallScreen() {
   const router = useRouter();
-  const { name, avatar } = useLocalSearchParams();
-  const callerName = (name as string) || 'Emma Watson';
+  const { name, avatar, toUserId, roomName, isCaller } = useLocalSearchParams();
+  const callerName = (name as string) || 'User';
   const callerAvatar = (avatar as string) || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80';
+  const targetUserId = (toUserId as string) || '';
+  const currentRoomName = (roomName as string) || '';
+  const isCallerUser = isCaller === 'true';
 
   const [seconds, setSeconds] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
+  const secondsRef = useRef(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setSeconds((prev) => prev + 1);
+      setSeconds((prev) => {
+        secondsRef.current = prev + 1;
+        return prev + 1;
+      });
     }, 1000);
-    return () => clearInterval(timer);
+
+    const unsubEnd = socketService.onCallEnded(() => {
+      router.back();
+    });
+
+    return () => {
+      clearInterval(timer);
+      unsubEnd?.();
+    };
   }, []);
 
   const formatTime = (totalSec: number) => {
@@ -28,6 +45,22 @@ export default function AudioCallScreen() {
   };
 
   const handleEndCall = () => {
+    const duration = formatTime(secondsRef.current);
+
+    if (targetUserId) {
+      socketService.endCall({ toUserId: targetUserId, roomName: currentRoomName });
+
+      api.calls
+        .logCall({
+          receiverId: targetUserId,
+          callType: 'audio',
+          direction: isCallerUser ? 'outgoing' : 'incoming',
+          duration,
+          roomName: currentRoomName,
+        })
+        .catch(() => {});
+    }
+
     router.back();
   };
 

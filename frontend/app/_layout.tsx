@@ -1,20 +1,48 @@
-import React from 'react';
-import { Stack } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/context/AuthContext';
+import { socketService } from '../src/services/socket';
+
+function GlobalCallManager({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsub = socketService.onIncomingCall((payload) => {
+      router.push({
+        pathname: '/call/ringing',
+        params: {
+          name: payload?.caller?.displayName || 'User',
+          avatar: payload?.caller?.avatarUrl || '',
+          type: payload?.callType || 'audio',
+          isIncoming: 'true',
+          fromUserId: payload?.caller?.id || '',
+          roomName: payload?.roomName || `room_${Date.now()}`,
+        },
+      });
+    });
+
+    return () => {
+      unsub?.();
+    };
+  }, []);
+
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#FFFFFF' },
-          }}
-        >
+        <GlobalCallManager>
+          <StatusBar style="dark" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#FFFFFF' },
+            }}
+          >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="conversation/[id]"
@@ -69,6 +97,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings/notifications" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="settings/privacy" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
+      </GlobalCallManager>
       </AuthProvider>
     </SafeAreaProvider>
   );

@@ -45,6 +45,7 @@ export interface Chat {
 
 export interface CallLogItem {
   id: string;
+  userId?: string;
   name: string;
   avatar: string;
   callType: 'audio' | 'video';

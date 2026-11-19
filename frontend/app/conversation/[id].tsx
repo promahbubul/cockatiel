@@ -54,6 +54,7 @@ export default function ConversationScreen() {
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
     isOnline: true,
   });
+  const [recipientId, setRecipientId] = useState<string | null>(null);
 
   const [inputText, setInputText] = useState('');
   const [isOtherTyping, setIsOtherTyping] = useState(false);
@@ -83,6 +84,10 @@ export default function ConversationScreen() {
           ]);
 
           if (chatRes?.success && chatRes.chat) {
+            const other = chatRes.chat.participants?.find((p: any) => p.id !== user?.id);
+            if (other) {
+              setRecipientId(other.id);
+            }
             setChatInfo({
               title: chatRes.chat.title || 'Conversation',
               avatarUrl: chatRes.chat.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
@@ -476,6 +481,36 @@ export default function ConversationScreen() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const handleStartCall = (callType: 'audio' | 'video') => {
+    const roomName = `call_${Date.now()}`;
+    const targetUserId = recipientId || (chatId.startsWith('chat_') ? chatId.replace('chat_', '') : '');
+
+    if (targetUserId && user?.id) {
+      socketService.initiateCall({
+        toUserId: targetUserId,
+        caller: {
+          id: user.id,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+        },
+        callType,
+        roomName,
+      });
+    }
+
+    router.push({
+      pathname: '/call/ringing',
+      params: {
+        name: chatInfo.title,
+        avatar: chatInfo.avatarUrl,
+        type: callType,
+        isIncoming: 'false',
+        toUserId: targetUserId,
+        roomName,
+      },
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Header */}
@@ -509,24 +544,14 @@ export default function ConversationScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerActionButton}
-            onPress={() =>
-              router.push({
-                pathname: '/call/ringing',
-                params: { name: chatInfo.title, avatar: chatInfo.avatarUrl, type: 'audio' },
-              })
-            }
+            onPress={() => handleStartCall('audio')}
             activeOpacity={0.7}
           >
             <Phone size={22} color={COLORS.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerActionButton}
-            onPress={() =>
-              router.push({
-                pathname: '/call/ringing',
-                params: { name: chatInfo.title, avatar: chatInfo.avatarUrl, type: 'video' },
-              })
-            }
+            onPress={() => handleStartCall('video')}
             activeOpacity={0.7}
           >
             <Video size={24} color={COLORS.primary} />

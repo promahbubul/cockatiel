@@ -14,10 +14,13 @@ import { COLORS } from '../../src/constants/theme';
 import { MOCK_CALLS } from '../../src/constants/mockData';
 import { CallListItem } from '../../src/components/CallListItem';
 import { api } from '../../src/services/api';
+import { socketService } from '../../src/services/socket';
+import { useAuth } from '../../src/context/AuthContext';
 import { CallLogItem } from '../../src/types';
 
 export default function CallsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'missed'>('all');
   const [calls, setCalls] = useState<CallLogItem[]>(MOCK_CALLS);
   const [refreshing, setRefreshing] = useState(false);
@@ -28,6 +31,7 @@ export default function CallsScreen() {
       if (res.success && res.calls && res.calls.length > 0) {
         const mapped: CallLogItem[] = res.calls.map((c: any) => ({
           id: c.id,
+          userId: c.otherUser?.id,
           name: c.otherUser?.displayName || 'User',
           avatar: c.otherUser?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
           callType: c.callType,
@@ -52,6 +56,36 @@ export default function CallsScreen() {
     setRefreshing(true);
     await fetchCalls();
     setRefreshing(false);
+  };
+
+  const handleStartCall = (callItem: CallLogItem) => {
+    const roomName = `call_${Date.now()}`;
+    const targetUserId = callItem.userId || '';
+
+    if (targetUserId && user?.id) {
+      socketService.initiateCall({
+        toUserId: targetUserId,
+        caller: {
+          id: user.id,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+        },
+        callType: callItem.callType,
+        roomName,
+      });
+    }
+
+    router.push({
+      pathname: '/call/ringing',
+      params: {
+        name: callItem.name,
+        avatar: callItem.avatar,
+        type: callItem.callType,
+        isIncoming: 'false',
+        toUserId: targetUserId,
+        roomName,
+      },
+    });
   };
 
   const filteredCalls = calls.filter((call) => {
@@ -123,18 +157,8 @@ export default function CallsScreen() {
         renderItem={({ item }) => (
           <CallListItem
             call={item}
-            onPress={() =>
-              router.push({
-                pathname: item.callType === 'video' ? '/call/video' : '/call/audio',
-                params: { name: item.name, avatar: item.avatar },
-              })
-            }
-            onInfoPress={() =>
-              router.push({
-                pathname: '/call/ringing',
-                params: { name: item.name, avatar: item.avatar, type: item.callType },
-              })
-            }
+            onPress={() => handleStartCall(item)}
+            onInfoPress={() => handleStartCall(item)}
           />
         )}
         contentContainerStyle={styles.listContent}
