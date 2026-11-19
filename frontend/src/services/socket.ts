@@ -94,6 +94,11 @@ class SocketService {
     return () => this.socket?.off('chat:update', callback);
   }
 
+  onMessageReact(callback: (data: { messageId: string; chatId: string; reactions: any[] }) => void) {
+    this.socket?.on('message:react', callback);
+    return () => this.socket?.off('message:react', callback);
+  }
+
   // WebRTC / Calling Signaling
   onIncomingCall(callback: (payload: any) => void) {
     this.socket?.on('call:incoming', callback);

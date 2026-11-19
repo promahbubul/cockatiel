@@ -4,17 +4,20 @@ import { CheckCheck } from 'lucide-react-native';
 import { Message } from '../types';
 import { COLORS } from '../constants/theme';
 import { Avatar } from './Avatar';
+import { VoiceNotePlayer } from './VoiceNotePlayer';
 
 interface MessageBubbleProps {
   message: Message;
   showAvatar?: boolean;
   onImagePress?: (uri: string) => void;
+  onLongPress?: (message: Message) => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   showAvatar = true,
   onImagePress,
+  onLongPress,
 }) => {
   const isOutgoing = message.isOutgoing;
 
@@ -36,7 +39,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       )}
 
       <View style={styles.bubbleContainer}>
-        <View
+        <TouchableOpacity
+          activeOpacity={0.92}
+          delayLongPress={280}
+          onLongPress={() => onLongPress?.(message)}
           style={[
             styles.bubble,
             isOutgoing ? styles.outgoingBubble : styles.incomingBubble,
@@ -51,6 +57,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             >
               <Image source={{ uri: message.imageUrl }} style={styles.mediaImage} />
             </TouchableOpacity>
+          )}
+
+          {message.audioUrl && (
+            <VoiceNotePlayer audioUrl={message.audioUrl} isOutgoing={isOutgoing} />
           )}
 
           {message.caption && (
@@ -106,7 +116,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               ))}
             </View>
           )}
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );

@@ -160,9 +160,23 @@ export async function reactMessage(request: FastifyRequest, reply: FastifyReply)
 
   await message.save();
 
+  const formattedReactions = message.reactions.map((r: any) => ({
+    userId: r.userId.toString(),
+    emoji: r.emoji,
+  }));
+
+  const io = getIO();
+  if (io) {
+    io.to(`chat:${message.chatId.toString()}`).emit('message:react', {
+      messageId: message._id.toString(),
+      chatId: message.chatId.toString(),
+      reactions: formattedReactions,
+    });
+  }
+
   return reply.send({
     success: true,
-    reactions: message.reactions,
+    reactions: formattedReactions,
   });
 }
 

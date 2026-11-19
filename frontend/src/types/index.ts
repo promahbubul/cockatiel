@@ -23,6 +23,8 @@ export interface Message {
   senderAvatar: string;
   text?: string;
   imageUrl?: string;
+  audioUrl?: string;
+  audioDuration?: number;
   caption?: string;
   timestamp: string;
   isOutgoing: boolean;

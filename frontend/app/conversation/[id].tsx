@@ -10,10 +10,13 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 import {
   ChevronLeft,
   Phone,
@@ -21,6 +24,8 @@ import {
   Plus,
   Smile,
   ArrowUp,
+  Mic,
+  Trash2,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONVERSATION_EMMA, CURRENT_USER } from '../../src/constants/mockData';
@@ -30,6 +35,8 @@ import { MessageBubble } from '../../src/components/MessageBubble';
 import { api } from '../../src/services/api';
 import { socketService } from '../../src/services/socket';
 import { useAuth } from '../../src/context/AuthContext';
+
+const REACTION_EMOJIS = ['❤️', '🦜', '🔥', '👍', '😂', '😮'];
 
 export default function ConversationScreen() {
   const router = useRouter();
@@ -51,6 +58,14 @@ export default function ConversationScreen() {
   const [inputText, setInputText] = useState('');
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+
+  // Audio recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingIntervalRef = useRef<any>(null);
+
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<any>(null);
 
@@ -87,7 +102,8 @@ export default function ConversationScreen() {
               isOutgoing: m.isMe,
               isRead: m.status === 'READ',
               reactions: m.reactions,
-              imageUrl: m.mediaUrl,
+              imageUrl: m.mediaType === 'IMAGE' || (!m.mediaType && m.mediaUrl) ? m.mediaUrl : undefined,
+              audioUrl: m.mediaType === 'AUDIO' ? m.mediaUrl : undefined,
             }));
             setMessages(mapped);
           }
@@ -102,6 +118,7 @@ export default function ConversationScreen() {
     // Listen for incoming messages
     const unsubscribeMessage = socketService.onNewMessage((newMsg: any) => {
       if (newMsg.chatId === chatId) {
+        const isAudio = newMsg.mediaType === 'AUDIO';
         const formatted: Message = {
           id: newMsg.id || `msg_${Date.now()}`,
           chatId: newMsg.chatId,
@@ -112,7 +129,8 @@ export default function ConversationScreen() {
           timestamp: 'Just now',
           isOutgoing: newMsg.senderId === user?.id,
           isRead: false,
-          imageUrl: newMsg.mediaUrl,
+          imageUrl: !isAudio && newMsg.mediaUrl ? newMsg.mediaUrl : undefined,
+          audioUrl: isAudio && newMsg.mediaUrl ? newMsg.mediaUrl : undefined,
         };
 
         setMessages((prev) => {
@@ -123,6 +141,17 @@ export default function ConversationScreen() {
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
+      }
+    });
+
+    // Listen for real-time reactions
+    const unsubMessageReact = socketService.onMessageReact((data) => {
+      if (data.chatId === chatId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === data.messageId ? { ...m, reactions: data.reactions } : m
+          )
+        );
       }
     });
 
@@ -142,8 +171,10 @@ export default function ConversationScreen() {
     return () => {
       socketService.leaveChat(chatId);
       unsubscribeMessage?.();
+      unsubMessageReact?.();
       unsubTypingStart?.();
       unsubTypingStop?.();
+      clearInterval(recordingIntervalRef.current);
     };
   }, [chatId, user?.id]);
 
@@ -287,6 +318,164 @@ export default function ConversationScreen() {
     }
   };
 
+  // Voice Note Recording Handlers
+  const startRecording = async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Denied', 'Microphone permission is required to record voice notes');
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err: any) {
+      console.error('Failed to start voice recording:', err);
+      Alert.alert('Recording Error', err.message || 'Could not access microphone');
+    }
+  };
+
+  const cancelRecording = async () => {
+    try {
+      clearInterval(recordingIntervalRef.current);
+      if (recordingRef.current) {
+        await recordingRef.current.stopAndUnloadAsync();
+        recordingRef.current = null;
+      }
+    } catch (err) {
+      console.error('Cancel recording error:', err);
+    } finally {
+      setIsRecording(false);
+      setRecordingDuration(0);
+    }
+  };
+
+  const stopAndSendRecording = async () => {
+    try {
+      clearInterval(recordingIntervalRef.current);
+      if (!recordingRef.current) return;
+
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      recordingRef.current = null;
+      setIsRecording(false);
+      const recordedDuration = recordingDuration;
+      setRecordingDuration(0);
+
+      if (!uri) return;
+
+      const currentUserId = user?.id || CURRENT_USER.id;
+      const currentUserName = user?.displayName || CURRENT_USER.name;
+      const currentUserAvatar = user?.avatarUrl || CURRENT_USER.avatar;
+
+      const tempId = `msg_${Date.now()}`;
+      const localMessage: Message = {
+        id: tempId,
+        chatId,
+        senderId: currentUserId,
+        senderName: currentUserName,
+        senderAvatar: currentUserAvatar,
+        text: '',
+        audioUrl: uri,
+        audioDuration: recordedDuration,
+        timestamp: 'Uploading...',
+        isOutgoing: true,
+        isRead: false,
+      };
+
+      setMessages((prev) => [...prev, localMessage]);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      // Upload to Cloudinary folder 'cockatiel/voice'
+      const uploadRes = await api.media.upload(uri, 'cockatiel/voice');
+      if (uploadRes.success && uploadRes.url) {
+        if (chatId.length === 24) {
+          const sendRes = await api.messages.send({
+            chatId,
+            mediaUrl: uploadRes.url,
+            mediaType: 'AUDIO',
+          });
+          if (sendRes.success && sendRes.message) {
+            socketService.emitMessage(chatId, {
+              ...sendRes.message,
+              mediaType: 'AUDIO',
+            });
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempId ? { ...m, audioUrl: uploadRes.url, timestamp: 'Just now' } : m
+              )
+            );
+          }
+        } else {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempId ? { ...m, audioUrl: uploadRes.url, timestamp: 'Just now' } : m
+            )
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error('Error sending voice recording:', err);
+      Alert.alert('Upload Failed', err.message || 'Could not send voice note');
+    }
+  };
+
+  // Emoji Reaction Handler
+  const handleSelectReaction = async (emoji: string) => {
+    if (!selectedMessage) return;
+    const msgId = selectedMessage.id;
+    setSelectedMessage(null);
+
+    // Optimistically update reactions
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id === msgId) {
+          const currentReactions = m.reactions ? [...m.reactions] : [];
+          const existingIdx = currentReactions.findIndex(
+            (r) => r.userId === (user?.id || 'me')
+          );
+          if (existingIdx >= 0) {
+            currentReactions[existingIdx] = { userId: user?.id || 'me', emoji };
+          } else {
+            currentReactions.push({ userId: user?.id || 'me', emoji });
+          }
+          return { ...m, reactions: currentReactions };
+        }
+        return m;
+      })
+    );
+
+    if (msgId.length === 24) {
+      try {
+        await api.messages.react(msgId, emoji);
+      } catch (err) {
+        console.error('React error:', err);
+      }
+    }
+  };
+
+  const formatRecordingTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Header */}
@@ -366,6 +555,7 @@ export default function ConversationScreen() {
             <MessageBubble
               message={item}
               onImagePress={(uri) => router.push({ pathname: '/media-viewer', params: { uri } })}
+              onLongPress={(msg) => setSelectedMessage(msg)}
             />
           )}
           contentContainerStyle={styles.messageListContent}
@@ -382,47 +572,112 @@ export default function ConversationScreen() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
-        {/* Bottom Input Bar */}
-        <View style={styles.inputContainer}>
-          <TouchableOpacity
-            style={styles.attachButton}
-            onPress={handlePickImage}
-            disabled={isUploadingMedia}
-            activeOpacity={0.7}
-          >
-            {isUploadingMedia ? (
-              <ActivityIndicator size="small" color={COLORS.primary} />
-            ) : (
-              <Plus size={22} color={COLORS.primary} />
-            )}
-          </TouchableOpacity>
+        {/* Bottom Input / Voice Recording Bar */}
+        {isRecording ? (
+          <View style={styles.recordingContainer}>
+            <TouchableOpacity
+              style={styles.cancelRecordingButton}
+              onPress={cancelRecording}
+              activeOpacity={0.7}
+            >
+              <Trash2 size={22} color="#EF4444" />
+            </TouchableOpacity>
 
-          <View style={styles.textInputWrapper}>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Type a message..."
-              placeholderTextColor={COLORS.textSecondary}
-              value={inputText}
-              onChangeText={handleInputChange}
-              multiline
-            />
-            <TouchableOpacity style={styles.emojiButton} activeOpacity={0.7}>
-              <Smile size={22} color={COLORS.textSecondary} />
+            <View style={styles.recordingStatus}>
+              <View style={styles.recordingPulsingDot} />
+              <Text style={styles.recordingTimerText}>
+                {formatRecordingTime(recordingDuration)}
+              </Text>
+              <Text style={styles.recordingLabel}>Recording voice...</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.sendRecordingButton}
+              onPress={stopAndSendRecording}
+              activeOpacity={0.8}
+            >
+              <ArrowUp size={20} color="#FFFFFF" strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
+        ) : (
+          <View style={styles.inputContainer}>
+            <TouchableOpacity
+              style={styles.attachButton}
+              onPress={handlePickImage}
+              disabled={isUploadingMedia}
+              activeOpacity={0.7}
+            >
+              {isUploadingMedia ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <Plus size={22} color={COLORS.primary} />
+              )}
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              inputText.trim().length > 0 && styles.sendButtonActive,
-            ]}
-            onPress={handleSend}
-            activeOpacity={0.8}
-          >
-            <ArrowUp size={20} color="#FFFFFF" strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
+            <View style={styles.textInputWrapper}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Type a message..."
+                placeholderTextColor={COLORS.textSecondary}
+                value={inputText}
+                onChangeText={handleInputChange}
+                multiline
+              />
+              <TouchableOpacity style={styles.emojiButton} activeOpacity={0.7}>
+                <Smile size={22} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {inputText.trim().length > 0 ? (
+              <TouchableOpacity
+                style={[styles.sendButton, styles.sendButtonActive]}
+                onPress={handleSend}
+                activeOpacity={0.8}
+              >
+                <ArrowUp size={20} color="#FFFFFF" strokeWidth={2.5} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.micButton}
+                onPress={startRecording}
+                activeOpacity={0.8}
+              >
+                <Mic size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </KeyboardAvoidingView>
+
+      {/* Floating Reaction Bar Modal */}
+      {selectedMessage && (
+        <Modal
+          transparent
+          animationType="fade"
+          visible={!!selectedMessage}
+          onRequestClose={() => setSelectedMessage(null)}
+        >
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setSelectedMessage(null)}
+          >
+            <View style={styles.reactionBarContainer}>
+              <View style={styles.reactionBar}>
+                {REACTION_EMOJIS.map((emoji) => (
+                  <TouchableOpacity
+                    key={emoji}
+                    style={styles.reactionItem}
+                    onPress={() => handleSelectReaction(emoji)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.reactionBarEmoji}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </Pressable>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -562,6 +817,113 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 4,
     elevation: 3,
+  },
+  micButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.primary, // Cockatiel Cheek Coral #FF6B35
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recordingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    gap: 12,
+  },
+  cancelRecordingButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recordingStatus: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 16,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  recordingPulsingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+    marginRight: 10,
+  },
+  recordingTimerText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginRight: 8,
+  },
+  recordingLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  sendRecordingButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reactionBarContainer: {
+    paddingHorizontal: 20,
+  },
+  reactionBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+    gap: 8,
+  },
+  reactionItem: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+  },
+  reactionBarEmoji: {
+    fontSize: 24,
   },
   emptyConversationContainer: {
     alignItems: 'center',
