@@ -40,6 +40,10 @@ class SocketService {
     }
   }
 
+  getSocket(): Socket | null {
+    return this.socket;
+  }
+
   // Room management
   joinChat(chatId: string) {
     this.socket?.emit('chat:join', chatId);

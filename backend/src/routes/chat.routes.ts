@@ -1,5 +1,13 @@
 import { FastifyInstance } from 'fastify';
-import { getChats, getChatById, createDirectChat, createGroupChat } from '../controllers/chat.controller.js';
+import {
+  getChats,
+  getChatById,
+  createDirectChat,
+  createGroupChat,
+  updateGroup,
+  addMembers,
+  removeMember,
+} from '../controllers/chat.controller.js';
 import { authenticateToken } from '../middlewares/auth.js';
 
 export async function chatRoutes(fastify: FastifyInstance) {
@@ -9,4 +17,7 @@ export async function chatRoutes(fastify: FastifyInstance) {
   fastify.get('/:id', getChatById);
   fastify.post('/direct', createDirectChat);
   fastify.post('/group', createGroupChat);
+  fastify.put('/:id', updateGroup);
+  fastify.post('/:id/members', addMembers);
+  fastify.delete('/:id/members/:memberId', removeMember);
 }

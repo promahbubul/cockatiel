@@ -132,6 +132,20 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ groupName, memberIds, groupAvatar }),
       }),
+    updateGroup: (chatId: string, payload: { groupName?: string; groupAvatar?: string }) =>
+      request<{ success: boolean; chat: any }>(`/chats/${chatId}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    addMembers: (chatId: string, memberIds: string[]) =>
+      request<{ success: boolean; participants: any[] }>(`/chats/${chatId}/members`, {
+        method: 'POST',
+        body: JSON.stringify({ memberIds }),
+      }),
+    removeMember: (chatId: string, memberId: string) =>
+      request<{ success: boolean; message: string }>(`/chats/${chatId}/members/${memberId}`, {
+        method: 'DELETE',
+      }),
   },
 
   // Messages
