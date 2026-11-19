@@ -24,6 +24,8 @@ export default function ChatsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [chats, setChats] = useState<Chat[]>(MOCK_CHATS);
+  const [activeContacts, setActiveContacts] = useState<any[]>([]);
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchChats = async () => {
@@ -35,7 +37,7 @@ export default function ChatsScreen() {
           name: c.title || 'Chat',
           avatar: c.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
           isGroup: !!c.isGroup,
-          isOnline: c.participants?.some((p: any) => p.isOnline),
+          isOnline: c.participants?.some((p: any) => p.isOnline || onlineUserIds.has(p.id)),
           lastMessage: c.lastMessage?.text || 'No messages yet',
           timestamp: c.lastMessage?.timestamp
             ? new Date(c.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -49,8 +51,49 @@ export default function ChatsScreen() {
     }
   };
 
+  const fetchContacts = async () => {
+    try {
+      const res = await api.users.getContacts();
+      if (res.success && res.contacts && res.contacts.length > 0) {
+        setActiveContacts(res.contacts);
+        // Pre-populate online users
+        const initialOnline = new Set<string>();
+        res.contacts.forEach((c: any) => {
+          if (c.isOnline) initialOnline.add(c.id);
+        });
+        setOnlineUserIds((prev) => new Set([...prev, ...initialOnline]));
+      }
+    } catch {
+      // Keep mock
+    }
+  };
+
   useEffect(() => {
     fetchChats();
+    fetchContacts();
+
+    // Listen for online users list from server
+    const unsubOnlineList = socketService.onOnlineList((ids: string[]) => {
+      setOnlineUserIds((prev) => new Set([...prev, ...ids]));
+    });
+
+    // Listen for user online / offline status changes
+    const unsubUserStatus = socketService.onUserStatus((data) => {
+      setOnlineUserIds((prev) => {
+        const next = new Set(prev);
+        if (data.isOnline) {
+          next.add(data.userId);
+        } else {
+          next.delete(data.userId);
+        }
+        return next;
+      });
+
+      // Update contacts list status
+      setActiveContacts((prev) =>
+        prev.map((c) => (c.id === data.userId ? { ...c, isOnline: data.isOnline } : c))
+      );
+    });
 
     // Real-time new message listener to refresh chat list preview
     const unsubscribeMessage = socketService.onNewMessage(() => {
@@ -65,12 +108,32 @@ export default function ChatsScreen() {
       fetchChats();
     });
 
+    const unsubscribeDeleted = socketService.onMessageDeleted(() => {
+      fetchChats();
+    });
+
     return () => {
+      unsubOnlineList?.();
+      unsubUserStatus?.();
       unsubscribeMessage?.();
       unsubscribeChatCreated?.();
       unsubscribeChatUpdate?.();
+      unsubscribeDeleted?.();
     };
   }, []);
+
+  const handleStartDirectChat = async (userId: string) => {
+    try {
+      const res = await api.chats.createDirect(userId);
+      if (res.success && res.chat) {
+        router.push(`/conversation/${res.chat.id}`);
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+    router.push(`/conversation/chat_${userId}`);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -113,24 +176,27 @@ export default function ChatsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.storiesContent}
         >
-          {ACTIVE_STORIES.map((story) => (
-            <TouchableOpacity
-              key={story.id}
-              style={styles.storyItem}
-              onPress={() => router.push(`/conversation/chat_${story.id}`)}
-              activeOpacity={0.7}
-            >
-              <Avatar
-                uri={story.avatar}
-                size={64}
-                isOnline={story.isOnline}
-                showStoryRing={story.isOnline}
-              />
-              <Text style={styles.storyName} numberOfLines={1}>
-                {story.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {(activeContacts.length > 0 ? activeContacts : ACTIVE_STORIES).map((contact: any) => {
+            const isUserOnline = onlineUserIds.has(contact.id) || !!contact.isOnline;
+            return (
+              <TouchableOpacity
+                key={contact.id}
+                style={styles.storyItem}
+                onPress={() => handleStartDirectChat(contact.id)}
+                activeOpacity={0.7}
+              >
+                <Avatar
+                  uri={contact.avatarUrl || contact.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'}
+                  size={60}
+                  isOnline={isUserOnline}
+                  showStoryRing={isUserOnline}
+                />
+                <Text style={styles.storyName} numberOfLines={1}>
+                  {contact.displayName || contact.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 

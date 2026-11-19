@@ -152,6 +152,11 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ messageId, emoji }),
       }),
+
+    delete: (messageId: string) =>
+      request<{ success: boolean; messageId: string; chatId: string }>(`/messages/${messageId}`, {
+        method: 'DELETE',
+      }),
   },
 
   // Media & Cloudinary Uploads

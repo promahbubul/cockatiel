@@ -26,6 +26,7 @@ import {
   ArrowUp,
   Mic,
   Trash2,
+  Copy,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONVERSATION_EMMA, CURRENT_USER } from '../../src/constants/mockData';
@@ -49,6 +50,7 @@ export default function ConversationScreen() {
     title: string;
     avatarUrl: string;
     isOnline: boolean;
+    lastSeen?: string;
   }>({
     title: 'Emma Watson',
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
@@ -87,12 +89,19 @@ export default function ConversationScreen() {
             const other = chatRes.chat.participants?.find((p: any) => p.id !== user?.id);
             if (other) {
               setRecipientId(other.id);
+              setChatInfo({
+                title: chatRes.chat.title || other.displayName || 'Conversation',
+                avatarUrl: chatRes.chat.avatarUrl || other.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+                isOnline: !!other.isOnline,
+                lastSeen: other.lastSeen,
+              });
+            } else {
+              setChatInfo({
+                title: chatRes.chat.title || 'Conversation',
+                avatarUrl: chatRes.chat.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+                isOnline: false,
+              });
             }
-            setChatInfo({
-              title: chatRes.chat.title || 'Conversation',
-              avatarUrl: chatRes.chat.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
-              isOnline: chatRes.chat.participants?.some((p: any) => p.isOnline && p.id !== user?.id) || false,
-            });
           }
 
           if (msgRes?.success && msgRes.messages) {
@@ -160,6 +169,24 @@ export default function ConversationScreen() {
       }
     });
 
+    // Listen for deleted messages
+    const unsubMessageDeleted = socketService.onMessageDeleted((data) => {
+      if (data.chatId === chatId) {
+        setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
+      }
+    });
+
+    // Listen for user online / offline status updates
+    const unsubUserStatus = socketService.onUserStatus((data) => {
+      setChatInfo((prev) => {
+        return {
+          ...prev,
+          isOnline: data.isOnline,
+          lastSeen: data.lastSeen,
+        };
+      });
+    });
+
     // Listen for typing events
     const unsubTypingStart = socketService.onTypingStart((data) => {
       if (data.chatId === chatId && data.userId !== user?.id) {
@@ -177,6 +204,8 @@ export default function ConversationScreen() {
       socketService.leaveChat(chatId);
       unsubscribeMessage?.();
       unsubMessageReact?.();
+      unsubMessageDeleted?.();
+      unsubUserStatus?.();
       unsubTypingStart?.();
       unsubTypingStop?.();
       clearInterval(recordingIntervalRef.current);
@@ -481,6 +510,30 @@ export default function ConversationScreen() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const formatLastSeen = (lastSeen?: string) => {
+    if (!lastSeen) return 'Offline';
+    const diffMs = Date.now() - new Date(lastSeen).getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    if (diffMins < 1) return 'Active just now';
+    if (diffMins < 60) return `Active ${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `Active ${diffHours}h ago`;
+    return 'Offline';
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    setSelectedMessage(null);
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+
+    if (messageId.length === 24) {
+      try {
+        await api.messages.delete(messageId);
+      } catch (err) {
+        console.error('Delete message error:', err);
+      }
+    }
+  };
+
   const handleStartCall = (callType: 'audio' | 'video') => {
     const roomName = `call_${Date.now()}`;
     const targetUserId = recipientId || (chatId.startsWith('chat_') ? chatId.replace('chat_', '') : '');
@@ -535,8 +588,12 @@ export default function ConversationScreen() {
           />
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerName}>{chatInfo.title}</Text>
-            <Text style={styles.headerStatus}>
-              {isOtherTyping ? 'Typing...' : chatInfo.isOnline ? 'Online' : 'Offline'}
+            <Text style={[styles.headerStatus, chatInfo.isOnline && styles.headerStatusOnline]}>
+              {isOtherTyping
+                ? 'Typing...'
+                : chatInfo.isOnline
+                ? '● Active now'
+                : formatLastSeen(chatInfo.lastSeen)}
             </Text>
           </View>
         </TouchableOpacity>
@@ -674,7 +731,7 @@ export default function ConversationScreen() {
         )}
       </KeyboardAvoidingView>
 
-      {/* Floating Reaction Bar Modal */}
+      {/* Floating Reaction & Message Action Bar Modal */}
       {selectedMessage && (
         <Modal
           transparent
@@ -698,6 +755,34 @@ export default function ConversationScreen() {
                     <Text style={styles.reactionBarEmoji}>{emoji}</Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+
+              {/* Message Action Options */}
+              <View style={styles.messageActionCard}>
+                {selectedMessage.isOutgoing && (
+                  <TouchableOpacity
+                    style={styles.actionMenuItem}
+                    onPress={() => handleDeleteMessage(selectedMessage.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Trash2 size={18} color="#EF4444" />
+                    <Text style={styles.actionMenuDangerText}>Unsend for Everyone</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedMessage.text ? (
+                  <TouchableOpacity
+                    style={styles.actionMenuItem}
+                    onPress={() => {
+                      setSelectedMessage(null);
+                      Alert.alert('Copied', 'Message text copied to clipboard');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Copy size={18} color={COLORS.text} />
+                    <Text style={styles.actionMenuText}>Copy Text</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           </Pressable>
@@ -740,8 +825,12 @@ const styles = StyleSheet.create({
   },
   headerStatus: {
     fontSize: 12,
-    color: COLORS.primary,
+    color: COLORS.textSecondary,
     fontWeight: '600',
+  },
+  headerStatusOnline: {
+    color: '#16A34A',
+    fontWeight: '700',
   },
   headerActions: {
     flexDirection: 'row',
@@ -968,5 +1057,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
+  },
+  messageActionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  actionMenuText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  actionMenuDangerText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#EF4444',
   },
 });

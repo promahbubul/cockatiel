@@ -28,8 +28,10 @@ export function setupSocketIO(io: SocketIOServer) {
       userSockets.get(currentUserId)!.add(socket.id);
 
       try {
-        await User.findByIdAndUpdate(currentUserId, { isOnline: true });
-        io.emit('user:status', { userId: currentUserId, isOnline: true });
+        const now = new Date();
+        await User.findByIdAndUpdate(currentUserId, { isOnline: true, lastSeen: now });
+        io.emit('user:status', { userId: currentUserId, isOnline: true, lastSeen: now });
+        socket.emit('user:online_list', Array.from(userSockets.keys()));
       } catch (e) {
         console.error('Error updating online status:', e);
       }

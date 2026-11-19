@@ -202,3 +202,56 @@ export async function uploadMedia(request: FastifyRequest, reply: FastifyReply) 
     return reply.status(500).send({ error: error.message || 'Media upload failed' });
   }
 }
+
+export async function deleteMessage(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) {
+  const currentUserId = (request as any).user.userId;
+  const { id } = request.params;
+
+  const message = await Message.findById(id);
+  if (!message) {
+    return reply.status(404).send({ error: 'Message not found' });
+  }
+
+  if (message.senderId.toString() !== currentUserId) {
+    return reply.status(403).send({ error: 'You can only unsend your own messages' });
+  }
+
+  const chatId = message.chatId.toString();
+  await Message.findByIdAndDelete(id);
+
+  // Update chat last message
+  const chat = await Chat.findById(chatId);
+  if (chat) {
+    const lastMsg = await Message.findOne({ chatId: new Types.ObjectId(chatId) }).sort({ createdAt: -1 });
+    if (lastMsg) {
+      chat.lastMessage = {
+        text: lastMsg.content || (lastMsg.mediaType ? `[${lastMsg.mediaType}]` : ''),
+        senderId: lastMsg.senderId,
+        timestamp: lastMsg.createdAt,
+      };
+    } else {
+      chat.lastMessage = undefined;
+    }
+    await chat.save();
+  }
+
+  // Real-time broadcast
+  const io = getIO();
+  if (io) {
+    io.to(`chat:${chatId}`).emit('message:deleted', { messageId: id, chatId });
+    if (chat && chat.participants) {
+      chat.participants.forEach((pId) => {
+        io.to(`user:${pId.toString()}`).emit('message:deleted', { messageId: id, chatId });
+      });
+    }
+  }
+
+  return reply.send({
+    success: true,
+    messageId: id,
+    chatId,
+  });
+}

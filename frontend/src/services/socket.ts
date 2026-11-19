@@ -84,6 +84,11 @@ class SocketService {
     return () => this.socket?.off('user:status', callback);
   }
 
+  onOnlineList(callback: (userIds: string[]) => void) {
+    this.socket?.on('user:online_list', callback);
+    return () => this.socket?.off('user:online_list', callback);
+  }
+
   onChatCreated(callback: (chat: any) => void) {
     this.socket?.on('chat:created', callback);
     return () => this.socket?.off('chat:created', callback);
@@ -97,6 +102,11 @@ class SocketService {
   onMessageReact(callback: (data: { messageId: string; chatId: string; reactions: any[] }) => void) {
     this.socket?.on('message:react', callback);
     return () => this.socket?.off('message:react', callback);
+  }
+
+  onMessageDeleted(callback: (data: { messageId: string; chatId: string }) => void) {
+    this.socket?.on('message:deleted', callback);
+    return () => this.socket?.off('message:deleted', callback);
   }
 
   // WebRTC / Calling Signaling
