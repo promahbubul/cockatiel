@@ -991,7 +991,17 @@ export default function ConversationScreen() {
           renderItem={({ item }) => (
             <MessageBubble
               message={item}
-              onImagePress={(uri) => router.push({ pathname: '/media-viewer', params: { uri } })}
+              onImagePress={(uri) =>
+                router.push({
+                  pathname: '/media-viewer',
+                  params: {
+                    uri,
+                    senderName: item.senderName,
+                    timestamp: item.timestamp,
+                    caption: item.caption || item.text || '',
+                  },
+                })
+              }
               onLongPress={(msg) => setSelectedMessage(msg)}
             />
           )}
