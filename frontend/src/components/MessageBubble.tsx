@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Linking } from 'react-native';
 import { CheckCheck } from 'lucide-react-native';
 import { Message } from '../types';
 import { COLORS } from '../constants/theme';
@@ -76,14 +76,40 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
 
           {message.text && (
-            <Text
-              style={[
-                styles.messageText,
-                isOutgoing ? styles.outgoingText : styles.incomingText,
-              ]}
-            >
-              {message.text}
-            </Text>
+            message.mediaUrl && message.text.startsWith('📄') ? (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(message.mediaUrl!)}
+                style={styles.documentCard}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.messageText,
+                    isOutgoing ? styles.outgoingText : styles.incomingText,
+                    styles.documentText,
+                  ]}
+                >
+                  {message.text}
+                </Text>
+                <Text
+                  style={[
+                    styles.tapToOpenText,
+                    isOutgoing ? { color: '#FED7AA' } : { color: COLORS.primary },
+                  ]}
+                >
+                  Tap to view document ↗
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Text
+                style={[
+                  styles.messageText,
+                  isOutgoing ? styles.outgoingText : styles.incomingText,
+                ]}
+              >
+                {message.text}
+              </Text>
+            )
           )}
 
           {/* Timestamp and status row */}
@@ -246,5 +272,16 @@ const styles = StyleSheet.create({
   },
   reactionEmoji: {
     fontSize: 12,
+  },
+  documentCard: {
+    paddingVertical: 2,
+  },
+  documentText: {
+    fontWeight: '700',
+  },
+  tapToOpenText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 3,
   },
 });

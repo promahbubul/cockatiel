@@ -8,11 +8,24 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, Bell, Shield, ChevronRight, Info, HeartHandshake, LogOut } from 'lucide-react-native';
+import {
+  Camera,
+  Bell,
+  Shield,
+  ChevronRight,
+  Info,
+  HeartHandshake,
+  LogOut,
+  Edit3,
+  X,
+  Check,
+} from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { CURRENT_USER } from '../../src/constants/mockData';
 import { useAuth } from '../../src/context/AuthContext';
@@ -23,9 +36,47 @@ export default function ProfileScreen() {
   const { user, logout, updateUser } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
 
+  // Profile Edit Modal State
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editAbout, setEditAbout] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const displayName = user?.displayName || CURRENT_USER.name;
+  const userEmail = user?.email || CURRENT_USER.email;
+  const avatarUrl = user?.avatarUrl || CURRENT_USER.avatar;
+  const aboutText = user?.about || CURRENT_USER.about || 'Chirping happily on Cockatiel 🦜';
+
   const handleLogout = async () => {
     await logout();
     router.replace('/auth/welcome');
+  };
+
+  const handleOpenEditModal = () => {
+    setEditName(displayName);
+    setEditAbout(aboutText);
+    setIsEditModalVisible(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) {
+      Alert.alert('Required', 'Display name cannot be empty.');
+      return;
+    }
+
+    try {
+      setIsSavingProfile(true);
+      await updateUser({
+        displayName: editName.trim(),
+        about: editAbout.trim(),
+      });
+      setIsEditModalVisible(false);
+      Alert.alert('Success', 'Profile updated successfully!');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to update profile.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handlePickAvatar = async () => {
@@ -54,18 +105,13 @@ export default function ProfileScreen() {
     }
   };
 
-  const displayName = user?.displayName || CURRENT_USER.name;
-  const userEmail = user?.email || CURRENT_USER.email;
-  const avatarUrl = user?.avatarUrl || CURRENT_USER.avatar;
-  const aboutText = user?.about || CURRENT_USER.about;
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity activeOpacity={0.7}>
+          <TouchableOpacity activeOpacity={0.7} onPress={handleOpenEditModal}>
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -93,10 +139,15 @@ export default function ProfileScreen() {
 
         {/* ABOUT Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>ABOUT</Text>
-          <View style={styles.aboutCard}>
-            <Text style={styles.aboutText}>{aboutText}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeader}>ABOUT</Text>
+            <TouchableOpacity onPress={handleOpenEditModal} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Edit3 size={15} color={COLORS.primary} />
+            </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.aboutCard} activeOpacity={0.7} onPress={handleOpenEditModal}>
+            <Text style={styles.aboutText}>{aboutText}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* PREFERENCES Section */}
@@ -109,7 +160,7 @@ export default function ProfileScreen() {
               onPress={() => router.push('/settings/notifications')}
               activeOpacity={0.7}
             >
-              <View style={[styles.menuIconContainer, { backgroundColor: '#E8F1FF' }]}>
+              <View style={[styles.menuIconContainer, { backgroundColor: '#FFF2EB' }]}>
                 <Bell size={20} color={COLORS.primary} />
               </View>
               <View style={styles.menuTextContainer}>
@@ -127,12 +178,12 @@ export default function ProfileScreen() {
               onPress={() => router.push('/settings/privacy')}
               activeOpacity={0.7}
             >
-              <View style={[styles.menuIconContainer, { backgroundColor: '#F3E8FF' }]}>
-                <Shield size={20} color="#9333EA" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                <Shield size={20} color="#D97706" />
               </View>
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>Privacy</Text>
-                <Text style={styles.menuSubtitle}>Security, Two-step verification</Text>
+                <Text style={styles.menuSubtitle}>Last Seen, Read Receipts, Blocked</Text>
               </View>
               <ChevronRight size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
@@ -148,12 +199,12 @@ export default function ProfileScreen() {
               onPress={() => router.push('/about')}
               activeOpacity={0.7}
             >
-              <View style={[styles.menuIconContainer, { backgroundColor: '#E0F2FE' }]}>
-                <Info size={20} color="#0284C7" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                <Info size={20} color={COLORS.primary} />
               </View>
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>About Cockatiel</Text>
-                <Text style={styles.menuSubtitle}>App information and credits</Text>
+                <Text style={styles.menuSubtitle}>Version 1.0.0 • Lutino Edition</Text>
               </View>
               <ChevronRight size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
@@ -165,21 +216,18 @@ export default function ProfileScreen() {
               onPress={() => router.push('/support')}
               activeOpacity={0.7}
             >
-              <View style={[styles.menuIconContainer, { backgroundColor: '#FEF3C7' }]}>
-                <HeartHandshake size={20} color="#D97706" />
+              <View style={[styles.menuIconContainer, { backgroundColor: '#DCFCE7' }]}>
+                <HeartHandshake size={20} color="#16A34A" />
               </View>
               <View style={styles.menuTextContainer}>
-                <Text style={styles.menuTitle}>Support & Creator</Text>
-                <Text style={styles.menuSubtitle}>Buy me a coffee & social links</Text>
+                <Text style={styles.menuTitle}>Help & Support</Text>
+                <Text style={styles.menuSubtitle}>FAQs, Feedback, Bug Report</Text>
               </View>
               <ChevronRight size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
-          </View>
-        </View>
 
-        {/* LOGOUT Section */}
-        <View style={styles.section}>
-          <View style={styles.card}>
+            <View style={styles.divider} />
+
             <TouchableOpacity
               style={styles.menuItem}
               onPress={handleLogout}
@@ -190,13 +238,98 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.menuTextContainer}>
                 <Text style={[styles.menuTitle, { color: '#EF4444' }]}>Log Out</Text>
-                <Text style={styles.menuSubtitle}>Sign out of your Cockatiel account</Text>
+                <Text style={styles.menuSubtitle}>Sign out of your account</Text>
               </View>
-              <ChevronRight size={18} color="#EF4444" />
+              <ChevronRight size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <Modal visible={isEditModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                <X size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Avatar inside modal */}
+            <View style={styles.modalAvatarBox}>
+              <View style={styles.modalAvatarWrapper}>
+                <Image source={{ uri: avatarUrl }} style={styles.modalAvatarImage} />
+                <TouchableOpacity
+                  style={styles.modalCameraBadge}
+                  onPress={handlePickAvatar}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Camera size={16} color="#FFFFFF" />
+                  )}
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.modalAvatarHelp}>Tap camera to update photo</Text>
+            </View>
+
+            {/* Display Name Input */}
+            <Text style={styles.inputLabel}>DISPLAY NAME</Text>
+            <TextInput
+              style={styles.textInput}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Your Name"
+              placeholderTextColor={COLORS.textSecondary}
+              maxLength={40}
+            />
+
+            {/* About / Bio Input */}
+            <Text style={styles.inputLabel}>ABOUT / BIO</Text>
+            <TextInput
+              style={[styles.textInput, styles.textArea]}
+              value={editAbout}
+              onChangeText={setEditAbout}
+              placeholder="Write a little about yourself or flock status..."
+              placeholderTextColor={COLORS.textSecondary}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              maxLength={120}
+            />
+
+            {/* Actions */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setIsEditModalVisible(false)}
+                disabled={isSavingProfile}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={handleSaveProfile}
+                disabled={isSavingProfile}
+                activeOpacity={0.8}
+              >
+                {isSavingProfile ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Check size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.saveBtnText}>Save</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -204,7 +337,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.background, // Feather Ivory #FAF9F6
   },
   content: {
     paddingBottom: 40,
@@ -218,13 +351,13 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '800',
     color: COLORS.text,
     letterSpacing: -0.5,
   },
   editButtonText: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary,
   },
@@ -237,9 +370,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatarImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     borderWidth: 3.5,
     borderColor: COLORS.accentGold,
   },
@@ -247,76 +380,72 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 2,
     right: 2,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#FFFFFF',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
     elevation: 3,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.text,
     marginBottom: 4,
   },
   userPhone: {
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.textSecondary,
     fontWeight: '500',
   },
   section: {
-    marginTop: 24,
+    marginTop: 20,
     paddingHorizontal: 20,
   },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
-    marginLeft: 4,
-    letterSpacing: 0.5,
+    paddingHorizontal: 4,
+  },
+  sectionHeader: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.textSecondary,
+    letterSpacing: 0.8,
   },
   aboutCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 18,
-    padding: 18,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   aboutText: {
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 22,
     color: COLORS.text,
     fontWeight: '500',
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     overflow: 'hidden',
-    shadowColor: '#1C1917',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 14,
   },
   menuIconContainer: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -326,18 +455,131 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 2,
   },
   menuSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.textSecondary,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
-    marginLeft: 74,
+    backgroundColor: COLORS.border,
+    marginLeft: 68,
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 36,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  modalAvatarBox: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalAvatarWrapper: {
+    position: 'relative',
+  },
+  modalAvatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  modalCameraBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  modalAvatarHelp: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 6,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.textSecondary,
+    letterSpacing: 0.8,
+    marginBottom: 6,
+    marginTop: 4,
+  },
+  textInput: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  textArea: {
+    height: 80,
+    paddingTop: 10,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    minWidth: 84,
+  },
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

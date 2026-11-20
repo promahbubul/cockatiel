@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
 import {
   ChevronLeft,
@@ -29,6 +30,9 @@ import {
   Copy,
   Search,
   X,
+  Camera,
+  Image as ImageIcon,
+  FileText,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONVERSATION_EMMA, CURRENT_USER } from '../../src/constants/mockData';
@@ -68,6 +72,9 @@ export default function ConversationScreen() {
   // In-chat search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Attachment Sheet state
+  const [isAttachmentSheetVisible, setIsAttachmentSheetVisible] = useState(false);
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -122,8 +129,10 @@ export default function ConversationScreen() {
               isOutgoing: m.isMe,
               isRead: m.status === 'READ',
               reactions: m.reactions,
-              imageUrl: m.mediaType === 'IMAGE' || (!m.mediaType && m.mediaUrl) ? m.mediaUrl : undefined,
+              imageUrl: m.mediaType === 'IMAGE' || m.mediaType === 'image' || (!m.mediaType && m.mediaUrl) ? m.mediaUrl : undefined,
               audioUrl: m.mediaType === 'AUDIO' ? m.mediaUrl : undefined,
+              mediaUrl: m.mediaUrl,
+              mediaType: m.mediaType,
             }));
             setMessages(mapped);
           }
@@ -149,8 +158,10 @@ export default function ConversationScreen() {
           timestamp: 'Just now',
           isOutgoing: newMsg.senderId === user?.id,
           isRead: false,
-          imageUrl: !isAudio && newMsg.mediaUrl ? newMsg.mediaUrl : undefined,
+          imageUrl: (newMsg.mediaType === 'IMAGE' || newMsg.mediaType === 'image' || (!newMsg.mediaType && !isAudio && newMsg.mediaUrl)) ? newMsg.mediaUrl : undefined,
           audioUrl: isAudio && newMsg.mediaUrl ? newMsg.mediaUrl : undefined,
+          mediaUrl: newMsg.mediaUrl,
+          mediaType: newMsg.mediaType,
         };
 
         setMessages((prev) => {
@@ -289,7 +300,91 @@ export default function ConversationScreen() {
     }
   };
 
-  const handlePickImage = async () => {
+  const sendPickedImage = async (pickedUri: string) => {
+    try {
+      setIsUploadingMedia(true);
+
+      const currentUserId = user?.id || CURRENT_USER.id;
+      const currentUserName = user?.displayName || CURRENT_USER.name;
+      const currentUserAvatar = user?.avatarUrl || CURRENT_USER.avatar;
+
+      const tempId = `msg_${Date.now()}`;
+      const localMessage: Message = {
+        id: tempId,
+        chatId,
+        senderId: currentUserId,
+        senderName: currentUserName,
+        senderAvatar: currentUserAvatar,
+        text: '',
+        imageUrl: pickedUri,
+        timestamp: 'Uploading...',
+        isOutgoing: true,
+        isRead: false,
+      };
+
+      setMessages((prev) => [...prev, localMessage]);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      // Upload to Cloudinary folder 'cockatiel/chats'
+      const uploadRes = await api.media.upload(pickedUri, 'cockatiel/chats');
+      if (uploadRes.success && uploadRes.url) {
+        if (chatId.length === 24) {
+          const sendRes = await api.messages.send({
+            chatId,
+            mediaUrl: uploadRes.url,
+            mediaType: 'image',
+          });
+          if (sendRes.success && sendRes.message) {
+            socketService.emitMessage(chatId, sendRes.message);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempId ? { ...m, imageUrl: uploadRes.url, timestamp: 'Just now' } : m
+              )
+            );
+          }
+        } else {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempId ? { ...m, imageUrl: uploadRes.url, timestamp: 'Just now' } : m
+            )
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error('Pick and upload image error:', err);
+      Alert.alert('Upload Failed', err.message || 'Could not upload image to Cloudinary');
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
+  const handlePickCamera = async () => {
+    setIsAttachmentSheetVisible(false);
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera permission is required to capture photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await sendPickedImage(result.assets[0].uri);
+      }
+    } catch (err: any) {
+      console.error('Camera capture error:', err);
+      Alert.alert('Camera Error', err.message || 'Failed to capture photo');
+    }
+  };
+
+  const handlePickGallery = async () => {
+    setIsAttachmentSheetVisible(false);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -298,12 +393,32 @@ export default function ConversationScreen() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const pickedUri = result.assets[0].uri;
+        await sendPickedImage(result.assets[0].uri);
+      }
+    } catch (err: any) {
+      console.error('Pick gallery error:', err);
+      Alert.alert('Error', err.message || 'Failed to select photo');
+    }
+  };
+
+  const handlePickDocument = async () => {
+    setIsAttachmentSheetVisible(false);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
         setIsUploadingMedia(true);
 
         const currentUserId = user?.id || CURRENT_USER.id;
         const currentUserName = user?.displayName || CURRENT_USER.name;
         const currentUserAvatar = user?.avatarUrl || CURRENT_USER.avatar;
+
+        const docSizeMb = file.size ? ` (${(file.size / (1024 * 1024)).toFixed(1)} MB)` : '';
+        const docText = `📄 ${file.name || 'Document'}${docSizeMb}`;
 
         const tempId = `msg_${Date.now()}`;
         const localMessage: Message = {
@@ -312,8 +427,7 @@ export default function ConversationScreen() {
           senderId: currentUserId,
           senderName: currentUserName,
           senderAvatar: currentUserAvatar,
-          text: '',
-          imageUrl: pickedUri,
+          text: docText,
           timestamp: 'Uploading...',
           isOutgoing: true,
           isRead: false,
@@ -324,35 +438,35 @@ export default function ConversationScreen() {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
 
-        // Upload to Cloudinary folder 'cockatiel/chats'
-        const uploadRes = await api.media.upload(pickedUri, 'cockatiel/chats');
+        const uploadRes = await api.media.upload(file.uri, 'cockatiel/chats');
         if (uploadRes.success && uploadRes.url) {
           if (chatId.length === 24) {
             const sendRes = await api.messages.send({
               chatId,
+              content: docText,
               mediaUrl: uploadRes.url,
-              mediaType: 'image',
+              mediaType: 'document',
             });
             if (sendRes.success && sendRes.message) {
               socketService.emitMessage(chatId, sendRes.message);
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === tempId ? { ...m, imageUrl: uploadRes.url, timestamp: 'Just now' } : m
+                  m.id === tempId ? { ...m, timestamp: 'Just now' } : m
                 )
               );
             }
           } else {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === tempId ? { ...m, imageUrl: uploadRes.url, timestamp: 'Just now' } : m
+                m.id === tempId ? { ...m, timestamp: 'Just now' } : m
               )
             );
           }
         }
       }
     } catch (err: any) {
-      console.error('Pick and upload image error:', err);
-      Alert.alert('Upload Failed', err.message || 'Could not upload image to Cloudinary');
+      console.error('Pick document error:', err);
+      Alert.alert('Document Error', err.message || 'Could not send document');
     } finally {
       setIsUploadingMedia(false);
     }
@@ -755,7 +869,7 @@ export default function ConversationScreen() {
           <View style={styles.inputContainer}>
             <TouchableOpacity
               style={styles.attachButton}
-              onPress={handlePickImage}
+              onPress={() => setIsAttachmentSheetVisible(true)}
               disabled={isUploadingMedia}
               activeOpacity={0.7}
             >
@@ -858,6 +972,64 @@ export default function ConversationScreen() {
           </Pressable>
         </Modal>
       )}
+
+      {/* Attachment Action Sheet */}
+      <Modal visible={isAttachmentSheetVisible} animationType="fade" transparent>
+        <Pressable
+          style={styles.sheetOverlay}
+          onPress={() => setIsAttachmentSheetVisible(false)}
+        >
+          <View style={styles.sheetContent}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Share Content</Text>
+
+            <View style={styles.sheetGrid}>
+              {/* Camera */}
+              <TouchableOpacity
+                style={styles.sheetItem}
+                onPress={handlePickCamera}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.sheetIconCircle, { backgroundColor: '#FFF2EB' }]}>
+                  <Camera size={26} color={COLORS.primary} />
+                </View>
+                <Text style={styles.sheetItemLabel}>Camera</Text>
+              </TouchableOpacity>
+
+              {/* Gallery */}
+              <TouchableOpacity
+                style={styles.sheetItem}
+                onPress={handlePickGallery}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.sheetIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <ImageIcon size={26} color="#D97706" />
+                </View>
+                <Text style={styles.sheetItemLabel}>Photos</Text>
+              </TouchableOpacity>
+
+              {/* Document */}
+              <TouchableOpacity
+                style={styles.sheetItem}
+                onPress={handlePickDocument}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.sheetIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                  <FileText size={26} color="#0284C7" />
+                </View>
+                <Text style={styles.sheetItemLabel}>Document</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.sheetCancelBtn}
+              onPress={() => setIsAttachmentSheetVisible(false)}
+            >
+              <Text style={styles.sheetCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1212,5 +1384,71 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  sheetContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 36,
+    alignItems: 'center',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 20,
+  },
+  sheetGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 24,
+  },
+  sheetItem: {
+    alignItems: 'center',
+    width: 80,
+  },
+  sheetIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  sheetItemLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  sheetCancelBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  sheetCancelText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
   },
 });

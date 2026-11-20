@@ -25,6 +25,8 @@ export interface Message {
   imageUrl?: string;
   audioUrl?: string;
   audioDuration?: number;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'AUDIO' | 'document' | 'file' | string;
   caption?: string;
   timestamp: string;
   isOutgoing: boolean;
