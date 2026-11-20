@@ -33,6 +33,7 @@ import {
   Camera,
   Image as ImageIcon,
   FileText,
+  Reply,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONVERSATION_EMMA, CURRENT_USER } from '../../src/constants/mockData';
@@ -75,6 +76,9 @@ export default function ConversationScreen() {
 
   // Attachment Sheet state
   const [isAttachmentSheetVisible, setIsAttachmentSheetVisible] = useState(false);
+
+  // Quoted Reply state
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -133,6 +137,7 @@ export default function ConversationScreen() {
               audioUrl: m.mediaType === 'AUDIO' ? m.mediaUrl : undefined,
               mediaUrl: m.mediaUrl,
               mediaType: m.mediaType,
+              replyTo: m.replyTo,
             }));
             setMessages(mapped);
           }
@@ -162,6 +167,7 @@ export default function ConversationScreen() {
           audioUrl: isAudio && newMsg.mediaUrl ? newMsg.mediaUrl : undefined,
           mediaUrl: newMsg.mediaUrl,
           mediaType: newMsg.mediaType,
+          replyTo: newMsg.replyTo,
         };
 
         setMessages((prev) => {
@@ -250,6 +256,16 @@ export default function ConversationScreen() {
     const currentUserName = user?.displayName || CURRENT_USER.name;
     const currentUserAvatar = user?.avatarUrl || CURRENT_USER.avatar;
 
+    const activeReply = replyingTo
+      ? {
+          messageId: replyingTo.id,
+          senderName: replyingTo.senderName,
+          text: replyingTo.text || (replyingTo.imageUrl ? 'Photo 📷' : replyingTo.audioUrl ? 'Voice Note 🎙️' : 'Attachment'),
+        }
+      : undefined;
+
+    setReplyingTo(null);
+
     const tempId = `msg_${Date.now()}`;
     const localMessage: Message = {
       id: tempId,
@@ -261,6 +277,7 @@ export default function ConversationScreen() {
       timestamp: 'Just now',
       isOutgoing: true,
       isRead: false,
+      replyTo: activeReply,
     };
 
     setMessages((prev) => [...prev, localMessage]);
@@ -278,6 +295,7 @@ export default function ConversationScreen() {
         const res = await api.messages.send({
           chatId,
           content,
+          replyTo: activeReply,
         });
 
         if (res.success && res.message) {
@@ -292,6 +310,7 @@ export default function ConversationScreen() {
           senderName: currentUserName,
           senderAvatar: currentUserAvatar,
           content,
+          replyTo: activeReply,
           createdAt: new Date().toISOString(),
         });
       }
@@ -838,6 +857,31 @@ export default function ConversationScreen() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
+        {/* Quoted Reply Preview Bar */}
+        {replyingTo && (
+          <View style={styles.replyPreviewBar}>
+            <View style={styles.replyAccentLine} />
+            <View style={styles.replyPreviewContent}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Reply size={13} color={COLORS.primary} style={{ marginRight: 4 }} />
+                <Text style={styles.replyPreviewSender}>
+                  Replying to {replyingTo.senderName}
+                </Text>
+              </View>
+              <Text style={styles.replyPreviewText} numberOfLines={1}>
+                {replyingTo.text || (replyingTo.imageUrl ? 'Photo 📷' : replyingTo.audioUrl ? 'Voice Note 🎙️' : 'Attachment')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setReplyingTo(null)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.replyCancelBtn}
+            >
+              <X size={18} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Bottom Input / Voice Recording Bar */}
         {isRecording ? (
           <View style={styles.recordingContainer}>
@@ -943,6 +987,19 @@ export default function ConversationScreen() {
 
               {/* Message Action Options */}
               <View style={styles.messageActionCard}>
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={() => {
+                    const toReply = selectedMessage;
+                    setSelectedMessage(null);
+                    setReplyingTo(toReply);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Reply size={18} color={COLORS.primary} />
+                  <Text style={styles.actionMenuText}>Reply</Text>
+                </TouchableOpacity>
+
                 {selectedMessage.isOutgoing && (
                   <TouchableOpacity
                     style={styles.actionMenuItem}
@@ -1450,5 +1507,39 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.textSecondary,
+  },
+  replyPreviewBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  replyAccentLine: {
+    width: 3.5,
+    height: '100%',
+    minHeight: 32,
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  replyPreviewContent: {
+    flex: 1,
+  },
+  replyPreviewSender: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  replyPreviewText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  replyCancelBtn: {
+    padding: 4,
+    marginLeft: 8,
   },
 });

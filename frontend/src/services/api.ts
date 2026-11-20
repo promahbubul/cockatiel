@@ -165,7 +165,19 @@ export const api = {
         `/messages/chat/${chatId}?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ''}`
       ),
 
-    send: (payload: { chatId: string; content?: string; mediaUrl?: string; mediaType?: string; caption?: string }) =>
+    send: (payload: {
+      chatId: string;
+      content?: string;
+      mediaUrl?: string;
+      mediaType?: string;
+      caption?: string;
+      replyTo?: {
+        messageId: string;
+        senderName: string;
+        text?: string;
+        mediaType?: string;
+      };
+    }) =>
       request<{ success: boolean; message: any }>('/messages/send', {
         method: 'POST',
         body: JSON.stringify(payload),

@@ -43,6 +43,14 @@ export async function getMessages(request: FastifyRequest, reply: FastifyReply) 
       caption: msg.caption,
       status: msg.status,
       reactions: msg.reactions || [],
+      replyTo: msg.replyTo
+        ? {
+            messageId: msg.replyTo.messageId?.toString(),
+            senderName: msg.replyTo.senderName,
+            text: msg.replyTo.text,
+            mediaType: msg.replyTo.mediaType,
+          }
+        : undefined,
       createdAt: msg.createdAt,
     })),
   });
@@ -55,7 +63,7 @@ export async function sendMessage(request: FastifyRequest, reply: FastifyReply) 
     return reply.status(400).send({ error: result.error.errors[0].message });
   }
 
-  const { chatId, content, mediaUrl, mediaType, caption } = result.data;
+  const { chatId, content, mediaUrl, mediaType, caption, replyTo } = result.data;
 
   // Validate user is a participant of the chat
   const chat = await Chat.findOne({
@@ -74,6 +82,14 @@ export async function sendMessage(request: FastifyRequest, reply: FastifyReply) 
     mediaUrl: mediaUrl || null,
     mediaType: mediaType || null,
     caption: caption || null,
+    replyTo: replyTo
+      ? {
+          messageId: new Types.ObjectId(replyTo.messageId),
+          senderName: replyTo.senderName,
+          text: replyTo.text,
+          mediaType: replyTo.mediaType,
+        }
+      : undefined,
     status: 'SENT',
     readBy: [new Types.ObjectId(currentUserId)],
   });
@@ -111,6 +127,14 @@ export async function sendMessage(request: FastifyRequest, reply: FastifyReply) 
     caption: populated.caption,
     status: populated.status,
     reactions: populated.reactions,
+    replyTo: populated.replyTo
+      ? {
+          messageId: populated.replyTo.messageId?.toString(),
+          senderName: populated.replyTo.senderName,
+          text: populated.replyTo.text,
+          mediaType: populated.replyTo.mediaType,
+        }
+      : undefined,
     createdAt: populated.createdAt,
   };
 

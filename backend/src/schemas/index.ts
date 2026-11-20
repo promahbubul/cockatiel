@@ -57,6 +57,14 @@ export const SendMessageSchema = z.object({
   mediaUrl: z.string().url().optional(),
   mediaType: z.enum(['IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT']).optional(),
   caption: z.string().optional(),
+  replyTo: z
+    .object({
+      messageId: z.string(),
+      senderName: z.string(),
+      text: z.string().optional(),
+      mediaType: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const ReactMessageSchema = z.object({

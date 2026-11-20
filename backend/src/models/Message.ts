@@ -6,6 +6,13 @@ export interface IReaction {
   createdAt: Date;
 }
 
+export interface IReplyTo {
+  messageId: Types.ObjectId;
+  senderName: string;
+  text?: string;
+  mediaType?: string;
+}
+
 export interface IMessage extends Document {
   chatId: Types.ObjectId;
   senderId: Types.ObjectId;
@@ -16,6 +23,7 @@ export interface IMessage extends Document {
   status: 'SENT' | 'DELIVERED' | 'READ';
   reactions: IReaction[];
   readBy: Types.ObjectId[];
+  replyTo?: IReplyTo;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,6 +48,12 @@ const MessageSchema = new Schema<IMessage>(
     status: { type: String, enum: ['SENT', 'DELIVERED', 'READ'], default: 'SENT' },
     reactions: [ReactionSchema],
     readBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    replyTo: {
+      messageId: { type: Schema.Types.ObjectId, ref: 'Message' },
+      senderName: { type: String },
+      text: { type: String },
+      mediaType: { type: String },
+    },
   },
   { timestamps: true }
 );

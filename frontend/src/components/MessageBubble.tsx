@@ -49,6 +49,43 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             message.imageUrl ? styles.mediaBubble : null,
           ]}
         >
+          {/* Quoted Reply Block */}
+          {message.replyTo && (
+            <View
+              style={[
+                styles.quotedContainer,
+                isOutgoing ? styles.quotedOutgoing : styles.quotedIncoming,
+              ]}
+            >
+              <View
+                style={[
+                  styles.quotedAccentBar,
+                  isOutgoing ? { backgroundColor: '#FBBF24' } : { backgroundColor: COLORS.primary },
+                ]}
+              />
+              <View style={styles.quotedContent}>
+                <Text
+                  style={[
+                    styles.quotedSender,
+                    isOutgoing ? { color: '#FEF3C7' } : { color: COLORS.primary },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {message.replyTo.senderName}
+                </Text>
+                <Text
+                  style={[
+                    styles.quotedText,
+                    isOutgoing ? { color: '#FFF2EB' } : { color: COLORS.textSecondary },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {message.replyTo.text || (message.replyTo.mediaType ? `[${message.replyTo.mediaType}]` : 'Original message')}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {message.imageUrl && (
             <TouchableOpacity
               style={styles.imageWrapper}
@@ -283,5 +320,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     marginTop: 3,
+  },
+  quotedContainer: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    marginBottom: 6,
+    overflow: 'hidden',
+    paddingVertical: 4,
+    paddingRight: 8,
+  },
+  quotedOutgoing: {
+    backgroundColor: 'rgba(0, 0, 0, 0.12)',
+  },
+  quotedIncoming: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  quotedAccentBar: {
+    width: 3.5,
+    borderRadius: 2,
+    marginRight: 8,
+  },
+  quotedContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  quotedSender: {
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 1,
+  },
+  quotedText: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

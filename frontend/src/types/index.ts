@@ -15,6 +15,13 @@ export interface Reaction {
   userId: string;
 }
 
+export interface ReplyInfo {
+  messageId?: string;
+  senderName: string;
+  text?: string;
+  mediaType?: string;
+}
+
 export interface Message {
   id: string;
   chatId: string;
@@ -32,6 +39,7 @@ export interface Message {
   isOutgoing: boolean;
   isRead?: boolean;
   reactions?: Reaction[];
+  replyTo?: ReplyInfo;
 }
 
 export interface Chat {
