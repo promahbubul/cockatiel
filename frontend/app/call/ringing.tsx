@@ -36,8 +36,20 @@ export default function RingingScreen() {
   );
 
   useEffect(() => {
+    // Auto-timeout if no answer after 22 seconds
+    let noAnswerTimer: any;
+    if (!incoming) {
+      noAnswerTimer = setTimeout(() => {
+        setCallStatus('No Answer');
+        setTimeout(() => {
+          router.back();
+        }, 1500);
+      }, 22000);
+    }
+
     // Listen if other party accepts
     const unsubAccept = socketService.onCallAccepted(() => {
+      clearTimeout(noAnswerTimer);
       setCallStatus('Connected! Starting call...');
       setTimeout(() => {
         if (isVideo) {
@@ -68,6 +80,7 @@ export default function RingingScreen() {
 
     // Listen if call rejected
     const unsubReject = socketService.onCallRejected((payload) => {
+      clearTimeout(noAnswerTimer);
       setCallStatus(`Call ${payload?.reason || 'declined'}`);
       setTimeout(() => {
         router.back();
@@ -76,6 +89,7 @@ export default function RingingScreen() {
 
     // Listen if caller cancelled / ended before answer
     const unsubEnd = socketService.onCallEnded(() => {
+      clearTimeout(noAnswerTimer);
       setCallStatus('Call ended');
       setTimeout(() => {
         router.back();
@@ -83,11 +97,12 @@ export default function RingingScreen() {
     });
 
     return () => {
+      clearTimeout(noAnswerTimer);
       unsubAccept?.();
       unsubReject?.();
       unsubEnd?.();
     };
-  }, [callerName, callerAvatar, isVideo, targetUserId, roomName]);
+  }, [callerName, callerAvatar, isVideo, targetUserId, roomName, incoming]);
 
   const handleAccept = () => {
     if (targetUserId) {
@@ -160,6 +175,48 @@ export default function RingingScreen() {
 
       {/* Action Buttons */}
       <View style={styles.bottomSection}>
+        {!incoming && (
+          <View style={styles.simulateBox}>
+            <TouchableOpacity
+              style={styles.simulateBtn}
+              onPress={() => {
+                setCallStatus('Connected! Starting call...');
+                setTimeout(() => {
+                  if (isVideo) {
+                    router.replace({
+                      pathname: '/call/video',
+                      params: {
+                        name: callerName,
+                        avatar: callerAvatar,
+                        toUserId: targetUserId,
+                        roomName,
+                        isCaller: 'true',
+                      },
+                    });
+                  } else {
+                    router.replace({
+                      pathname: '/call/audio',
+                      params: {
+                        name: callerName,
+                        avatar: callerAvatar,
+                        toUserId: targetUserId,
+                        roomName,
+                        isCaller: 'true',
+                      },
+                    });
+                  }
+                }, 300);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.simulateBtnText}>Simulate Answer (Quick Test) 📞</Text>
+            </TouchableOpacity>
+            <Text style={styles.simulateHint}>
+              Tip: For live calling, open an incognito window and log into {callerName}
+            </Text>
+          </View>
+        )}
+
         {incoming ? (
           <View style={styles.actionsRow}>
             <TouchableOpacity
@@ -273,5 +330,29 @@ const styles = StyleSheet.create({
   },
   acceptBtn: {
     backgroundColor: '#22C55E',
+  },
+  simulateBox: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  simulateBtn: {
+    backgroundColor: 'rgba(251, 191, 36, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#FBBF24',
+    marginBottom: 8,
+  },
+  simulateBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FBBF24',
+  },
+  simulateHint: {
+    fontSize: 11,
+    color: '#A8A29E',
+    textAlign: 'center',
+    maxWidth: 260,
   },
 });

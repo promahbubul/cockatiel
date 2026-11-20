@@ -170,6 +170,19 @@ export default function ConversationScreen() {
             }));
             setMessages(mapped);
           }
+        } else {
+          // Mock or custom chat: resolve recipient ID from contacts
+          try {
+            const contactsRes = await api.users.getContacts();
+            if (contactsRes.success && contactsRes.contacts) {
+              const matched = contactsRes.contacts.find((c: any) =>
+                c.displayName.toLowerCase().includes(chatInfo.title.toLowerCase())
+              );
+              if (matched) {
+                setRecipientId(matched.id || matched._id);
+              }
+            }
+          } catch {}
         }
       } catch {
         // Fallback to mock conversation
@@ -818,14 +831,17 @@ export default function ConversationScreen() {
   const handleStartCall = (callType: 'audio' | 'video') => {
     const roomName = `call_${Date.now()}`;
     const targetUserId = recipientId || (chatId.startsWith('chat_') ? chatId.replace('chat_', '') : '');
+    const currentUserId = user?.id || CURRENT_USER.id;
+    const currentUserName = user?.displayName || CURRENT_USER.name;
+    const currentUserAvatar = user?.avatarUrl || CURRENT_USER.avatar;
 
-    if (targetUserId && user?.id) {
+    if (targetUserId) {
       socketService.initiateCall({
         toUserId: targetUserId,
         caller: {
-          id: user.id,
-          displayName: user.displayName,
-          avatarUrl: user.avatarUrl,
+          id: currentUserId,
+          displayName: currentUserName,
+          avatarUrl: currentUserAvatar,
         },
         callType,
         roomName,
