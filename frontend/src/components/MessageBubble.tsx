@@ -50,7 +50,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ]}
         >
           {/* Quoted Reply Block */}
-          {message.replyTo && (
+          {Boolean(message.replyTo) && (
             <View
               style={[
                 styles.quotedContainer,
@@ -71,7 +71,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   ]}
                   numberOfLines={1}
                 >
-                  {message.replyTo.senderName}
+                  {message.replyTo?.senderName}
                 </Text>
                 <Text
                   style={[
@@ -80,13 +80,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   ]}
                   numberOfLines={2}
                 >
-                  {message.replyTo.text || (message.replyTo.mediaType ? `[${message.replyTo.mediaType}]` : 'Original message')}
+                  {message.replyTo?.text || (message.replyTo?.mediaType ? `[${message.replyTo.mediaType}]` : 'Original message')}
                 </Text>
               </View>
             </View>
           )}
 
-          {message.imageUrl && (
+          {Boolean(message.imageUrl) && (
             <TouchableOpacity
               style={styles.imageWrapper}
               onPress={() => onImagePress?.(message.imageUrl!)}
@@ -96,11 +96,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </TouchableOpacity>
           )}
 
-          {message.audioUrl && (
-            <VoiceNotePlayer audioUrl={message.audioUrl} isOutgoing={isOutgoing} />
+          {Boolean(message.audioUrl) && (
+            <VoiceNotePlayer audioUrl={message.audioUrl!} isOutgoing={isOutgoing} />
           )}
 
-          {message.caption && (
+          {Boolean(message.caption) && (
             <Text
               style={[
                 styles.messageText,
@@ -112,8 +112,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </Text>
           )}
 
-          {message.text && (
-            message.mediaUrl && message.text.startsWith('📄') ? (
+          {Boolean(message.text) && (
+            Boolean(message.mediaUrl && message.text?.startsWith('📄')) ? (
               <TouchableOpacity
                 onPress={() => Linking.openURL(message.mediaUrl!)}
                 style={styles.documentCard}
@@ -159,20 +159,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             >
               {message.timestamp}
             </Text>
-            {isOutgoing && message.isRead && (
+            {Boolean(isOutgoing && message.isRead) && (
               <CheckCheck size={14} color="#FEF3C7" style={styles.checkIcon} />
             )}
           </View>
 
           {/* Reactions badge */}
-          {message.reactions && message.reactions.length > 0 && (
+          {Boolean(message.reactions && message.reactions.length > 0) && (
             <View
               style={[
                 styles.reactionBadge,
                 isOutgoing ? styles.reactionBadgeOutgoing : styles.reactionBadgeIncoming,
               ]}
             >
-              {message.reactions.map((r, idx) => (
+              {message.reactions!.map((r, idx) => (
                 <Text key={idx} style={styles.reactionEmoji}>
                   {r.emoji}
                 </Text>
