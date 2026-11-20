@@ -36,6 +36,7 @@ import {
   Reply,
   Pin,
   PinOff,
+  Forward,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONVERSATION_EMMA, CURRENT_USER } from '../../src/constants/mockData';
@@ -84,6 +85,13 @@ export default function ConversationScreen() {
 
   // Pinned Message state
   const [pinnedMessage, setPinnedMessage] = useState<any>(null);
+
+  // Forward Message state
+  const [isForwardModalVisible, setIsForwardModalVisible] = useState(false);
+  const [messageToForward, setMessageToForward] = useState<Message | null>(null);
+  const [forwardChats, setForwardChats] = useState<any[]>([]);
+  const [forwardSearch, setForwardSearch] = useState('');
+  const [isForwarding, setIsForwarding] = useState(false);
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -730,6 +738,61 @@ export default function ConversationScreen() {
     }
   };
 
+  const handleOpenForward = async (msg: Message) => {
+    setSelectedMessage(null);
+    setMessageToForward(msg);
+    setIsForwardModalVisible(true);
+    setForwardSearch('');
+    try {
+      const res = await api.chats.getChats();
+      if (res.success && res.chats) {
+        setForwardChats(res.chats);
+      }
+    } catch (err) {
+      console.error('Fetch chats for forward error:', err);
+    }
+  };
+
+  const handleConfirmForward = async (targetChat: any) => {
+    if (!messageToForward) return;
+    try {
+      setIsForwarding(true);
+      const targetChatId = targetChat.id || targetChat._id;
+      const targetName = targetChat.name || targetChat.title || 'Conversation';
+      const payload: any = {
+        chatId: targetChatId,
+      };
+      if (messageToForward.text) {
+        payload.content = messageToForward.text;
+      }
+      if (messageToForward.imageUrl) {
+        payload.mediaUrl = messageToForward.imageUrl;
+        payload.mediaType = 'image';
+      } else if (messageToForward.audioUrl) {
+        payload.mediaUrl = messageToForward.audioUrl;
+        payload.mediaType = 'AUDIO';
+      } else if (messageToForward.mediaUrl) {
+        payload.mediaUrl = messageToForward.mediaUrl;
+        payload.mediaType = messageToForward.mediaType || 'file';
+      }
+
+      if (targetChatId.length === 24) {
+        const res = await api.messages.send(payload);
+        if (res.success && res.message) {
+          socketService.emitMessage(targetChatId, res.message);
+        }
+      }
+
+      setIsForwardModalVisible(false);
+      setMessageToForward(null);
+      Alert.alert('Forwarded', `Message forwarded to ${targetName}`);
+    } catch (err: any) {
+      Alert.alert('Forward Error', err.message || 'Could not forward message');
+    } finally {
+      setIsForwarding(false);
+    }
+  };
+
   const handleStartCall = (callType: 'audio' | 'video') => {
     const roomName = `call_${Date.now()}`;
     const targetUserId = recipientId || (chatId.startsWith('chat_') ? chatId.replace('chat_', '') : '');
@@ -1101,6 +1164,15 @@ export default function ConversationScreen() {
 
                 <TouchableOpacity
                   style={styles.actionMenuItem}
+                  onPress={() => selectedMessage && handleOpenForward(selectedMessage)}
+                  activeOpacity={0.7}
+                >
+                  <Forward size={18} color="#059669" />
+                  <Text style={styles.actionMenuText}>Forward</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
                   onPress={() => {
                     const targetId = pinnedMessage?.messageId || pinnedMessage?.id;
                     if (targetId === selectedMessage.id) {
@@ -1211,6 +1283,110 @@ export default function ConversationScreen() {
             </TouchableOpacity>
           </View>
         </Pressable>
+      </Modal>
+
+      {/* Forward Message Modal */}
+      <Modal visible={isForwardModalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.forwardOverlay}
+        >
+          <View style={styles.forwardContainer}>
+            <View style={styles.forwardHeader}>
+              <Text style={styles.forwardTitle}>Forward Message to...</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsForwardModalVisible(false);
+                  setMessageToForward(null);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Preview of message being forwarded */}
+            {messageToForward && (
+              <View style={styles.forwardPreviewBar}>
+                <Text style={styles.forwardPreviewLabel}>Forwarding:</Text>
+                <Text style={styles.forwardPreviewSnippet} numberOfLines={1}>
+                  {messageToForward.text ||
+                    (messageToForward.imageUrl
+                      ? 'Photo 📷'
+                      : messageToForward.audioUrl
+                      ? 'Voice Note 🎙️'
+                      : 'Attachment 📎')}
+                </Text>
+              </View>
+            )}
+
+            {/* Search Input for target chats */}
+            <View style={styles.forwardSearchBox}>
+              <Search size={16} color={COLORS.textSecondary} />
+              <TextInput
+                style={styles.forwardSearchInput}
+                placeholder="Search conversations..."
+                placeholderTextColor={COLORS.textSecondary}
+                value={forwardSearch}
+                onChangeText={setForwardSearch}
+              />
+              {forwardSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setForwardSearch('')}>
+                  <X size={16} color={COLORS.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Chats list */}
+            {isForwarding ? (
+              <View style={styles.forwardLoadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.forwardLoadingText}>Forwarding message...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={(forwardChats.length > 0 ? forwardChats : [
+                  { id: 'mock_1', name: 'Emma Watson', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' },
+                  { id: 'mock_2', name: 'Tech Birds Group 🦜', avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400', isGroup: true },
+                  { id: 'mock_3', name: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400' },
+                ]).filter((c) => {
+                  const title = c.name || c.title || '';
+                  return title.toLowerCase().includes(forwardSearch.toLowerCase());
+                })}
+                keyExtractor={(item) => item.id || item._id}
+                style={styles.forwardList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.forwardChatItem}
+                    onPress={() => handleConfirmForward(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Avatar
+                      uri={item.avatar || item.avatarUrl || item.groupAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400'}
+                      size={44}
+                    />
+                    <View style={styles.forwardChatInfo}>
+                      <Text style={styles.forwardChatName} numberOfLines={1}>
+                        {item.name || item.title || 'Chat'}
+                      </Text>
+                      <Text style={styles.forwardChatSub} numberOfLines={1}>
+                        {item.isGroup ? 'Group Conversation' : 'Direct Message'}
+                      </Text>
+                    </View>
+                    <View style={styles.forwardSendBadge}>
+                      <Forward size={16} color="#FFFFFF" />
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.forwardEmptyState}>
+                    <Text style={styles.forwardEmptyText}>No conversations found</Text>
+                  </View>
+                }
+              />
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -1708,5 +1884,129 @@ const styles = StyleSheet.create({
   unpinBtn: {
     padding: 6,
     marginLeft: 8,
+  },
+  // Forward Modal Styles
+  forwardOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  forwardContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
+    maxHeight: '80%',
+    minHeight: 400,
+  },
+  forwardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  forwardTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  forwardPreviewBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderLeftWidth: 3.5,
+    borderLeftColor: COLORS.primary,
+  },
+  forwardPreviewLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginRight: 6,
+  },
+  forwardPreviewSnippet: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  forwardSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    height: 40,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  forwardSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+    marginLeft: 8,
+  },
+  forwardList: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
+  forwardChatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  forwardChatInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  forwardChatName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  forwardChatSub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  forwardSendBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  forwardLoadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  forwardLoadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  forwardEmptyState: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  forwardEmptyText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
   },
 });

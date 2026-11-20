@@ -14,6 +14,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ audioUrl, isOu
   const [isLoading, setIsLoading] = useState(false);
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState<1 | 1.5 | 2>(1);
   const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ audioUrl, isOu
 
       const { sound } = await Audio.Sound.createAsync(
         { uri: audioUrl },
-        { shouldPlay: true },
+        { shouldPlay: true, rate: playbackRate, shouldCorrectPitch: true },
         (status) => {
           if (status.isLoaded) {
             setPositionMs(status.positionMillis);
@@ -66,6 +67,18 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ audioUrl, isOu
       console.error('Error playing voice note:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const togglePlaybackRate = async () => {
+    const nextRate: 1 | 1.5 | 2 = playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
+    setPlaybackRate(nextRate);
+    if (soundRef.current) {
+      try {
+        await soundRef.current.setRateAsync(nextRate, true);
+      } catch (err) {
+        console.error('Error changing playback rate:', err);
+      }
     }
   };
 
@@ -124,14 +137,37 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ audioUrl, isOu
           })}
         </View>
 
-        <Text
-          style={[
-            styles.durationText,
-            isOutgoing ? styles.durationOutgoing : styles.durationIncoming,
-          ]}
-        >
-          {isPlaying || positionMs > 0 ? formatTime(positionMs) : durationMs > 0 ? formatTime(durationMs) : '0:00'}
-        </Text>
+        <View style={styles.metaRow}>
+          <Text
+            style={[
+              styles.durationText,
+              isOutgoing ? styles.durationOutgoing : styles.durationIncoming,
+            ]}
+          >
+            {isPlaying || positionMs > 0 ? formatTime(positionMs) : durationMs > 0 ? formatTime(durationMs) : '0:00'}
+          </Text>
+
+          {/* Speed Toggle Pill */}
+          <TouchableOpacity
+            style={[
+              styles.speedBadge,
+              isOutgoing ? styles.speedBadgeOutgoing : styles.speedBadgeIncoming,
+              playbackRate !== 1 && (isOutgoing ? styles.speedBadgeOutgoingActive : styles.speedBadgeIncomingActive),
+            ]}
+            onPress={togglePlaybackRate}
+            activeOpacity={0.7}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Text
+              style={[
+                styles.speedText,
+                isOutgoing ? styles.speedTextOutgoing : styles.speedTextIncoming,
+              ]}
+            >
+              {playbackRate}x
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -143,7 +179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     paddingHorizontal: 2,
-    minWidth: 180,
+    minWidth: 200,
   },
   playButton: {
     width: 38,
@@ -190,15 +226,52 @@ const styles = StyleSheet.create({
   barIncomingUnplayed: {
     backgroundColor: COLORS.border,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
   durationText: {
     fontSize: 11,
     fontWeight: '700',
-    marginTop: 2,
   },
   durationOutgoing: {
     color: '#FEF3C7', // Canary Gold Light
   },
   durationIncoming: {
     color: COLORS.textSecondary,
+  },
+  speedBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  speedBadgeOutgoing: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  speedBadgeIncoming: {
+    backgroundColor: '#F3F4F6',
+    borderColor: COLORS.border,
+  },
+  speedBadgeOutgoingActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+  },
+  speedBadgeIncomingActive: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+  },
+  speedText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  speedTextOutgoing: {
+    color: '#FFFFFF',
+  },
+  speedTextIncoming: {
+    color: COLORS.text,
   },
 });
