@@ -1,16 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function NotificationsSettingsScreen() {
   const router = useRouter();
-  const [showNotifications, setShowNotifications] = useState(true);
-  const [messagePreviews, setMessagePreviews] = useState(true);
-  const [sounds, setSounds] = useState(true);
-  const [vibrate, setVibrate] = useState(true);
+  const { user, updateSettings } = useAuth();
+
+  const userSettings = user?.settings || {};
+  const [showNotifications, setShowNotifications] = useState(
+    userSettings.showNotifications !== undefined ? userSettings.showNotifications : true
+  );
+  const [messagePreviews, setMessagePreviews] = useState(
+    userSettings.messagePreviews !== undefined ? userSettings.messagePreviews : true
+  );
+  const [sounds, setSounds] = useState(
+    userSettings.sounds !== undefined ? userSettings.sounds : true
+  );
+  const [vibrate, setVibrate] = useState(
+    userSettings.vibrate !== undefined ? userSettings.vibrate : true
+  );
+
+  useEffect(() => {
+    if (user?.settings) {
+      if (user.settings.showNotifications !== undefined) setShowNotifications(user.settings.showNotifications);
+      if (user.settings.messagePreviews !== undefined) setMessagePreviews(user.settings.messagePreviews);
+      if (user.settings.sounds !== undefined) setSounds(user.settings.sounds);
+      if (user.settings.vibrate !== undefined) setVibrate(user.settings.vibrate);
+    }
+  }, [user?.settings]);
+
+  const handleToggle = (key: string, val: boolean) => {
+    if (key === 'showNotifications') setShowNotifications(val);
+    if (key === 'messagePreviews') setMessagePreviews(val);
+    if (key === 'sounds') setSounds(val);
+    if (key === 'vibrate') setVibrate(val);
+
+    updateSettings({ [key]: val });
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -38,7 +68,7 @@ export default function NotificationsSettingsScreen() {
               </View>
               <Switch
                 value={showNotifications}
-                onValueChange={setShowNotifications}
+                onValueChange={(val) => handleToggle('showNotifications', val)}
                 trackColor={{ false: '#E5E7EB', true: COLORS.primary }}
                 thumbColor="#FFFFFF"
               />
@@ -53,7 +83,7 @@ export default function NotificationsSettingsScreen() {
               </View>
               <Switch
                 value={messagePreviews}
-                onValueChange={setMessagePreviews}
+                onValueChange={(val) => handleToggle('messagePreviews', val)}
                 trackColor={{ false: '#E5E7EB', true: COLORS.primary }}
                 thumbColor="#FFFFFF"
               />
@@ -67,11 +97,11 @@ export default function NotificationsSettingsScreen() {
             <View style={styles.settingRow}>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>In-App Sounds</Text>
-                <Text style={styles.settingSubtitle}>Play tones when sending or receiving</Text>
+                <Text style={styles.settingSubtitle}>Play cheerful chirps when sending or receiving</Text>
               </View>
               <Switch
                 value={sounds}
-                onValueChange={setSounds}
+                onValueChange={(val) => handleToggle('sounds', val)}
                 trackColor={{ false: '#E5E7EB', true: COLORS.primary }}
                 thumbColor="#FFFFFF"
               />
@@ -82,11 +112,11 @@ export default function NotificationsSettingsScreen() {
             <View style={styles.settingRow}>
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>In-App Vibrate</Text>
-                <Text style={styles.settingSubtitle}>Vibrate device on incoming messages</Text>
+                <Text style={styles.settingSubtitle}>Vibrate device on incoming flock messages</Text>
               </View>
               <Switch
                 value={vibrate}
-                onValueChange={setVibrate}
+                onValueChange={(val) => handleToggle('vibrate', val)}
                 trackColor={{ false: '#E5E7EB', true: COLORS.primary }}
                 thumbColor="#FFFFFF"
               />
@@ -101,7 +131,7 @@ export default function NotificationsSettingsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background, // Feather Ivory #FAF9F6
   },
   header: {
     flexDirection: 'row',
@@ -110,7 +140,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background,
   },
   backButton: {
     padding: 2,
@@ -130,16 +161,16 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.textSecondary,
     marginBottom: 10,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: COLORS.border,
     overflow: 'hidden',
   },
   settingRow: {
@@ -153,7 +184,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   settingTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 2,
@@ -161,10 +192,11 @@ const styles = StyleSheet.create({
   settingSubtitle: {
     fontSize: 13,
     color: COLORS.textSecondary,
+    lineHeight: 18,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: COLORS.border,
     marginLeft: 16,
   },
 });

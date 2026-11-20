@@ -116,6 +116,16 @@ export const api = {
     getContacts: () => request<{ success: boolean; contacts: any[] }>('/users/contacts'),
     search: (q: string) => request<{ success: boolean; users: any[] }>(`/users/search?q=${encodeURIComponent(q)}`),
     getById: (id: string) => request<{ success: boolean; user: any }>(`/users/${id}`),
+    updateSettings: (settings: Record<string, any>) =>
+      request<{ success: boolean; settings: any }>('/users/settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      }),
+    submitFeedback: (payload: { category: string; subject?: string; message: string }) =>
+      request<{ success: boolean; message: string }>('/users/feedback', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
   },
 
   // Chats

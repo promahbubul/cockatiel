@@ -1,14 +1,39 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function PrivacySettingsScreen() {
   const router = useRouter();
-  const [readReceipts, setReadReceipts] = useState(true);
-  const [lastSeen, setLastSeen] = useState<'everyone' | 'contacts' | 'nobody'>('everyone');
+  const { user, updateSettings } = useAuth();
+
+  const userSettings = user?.settings || {};
+  const [readReceipts, setReadReceipts] = useState(
+    userSettings.readReceipts !== undefined ? userSettings.readReceipts : true
+  );
+  const [lastSeen, setLastSeen] = useState<'everyone' | 'contacts' | 'nobody'>(
+    userSettings.lastSeenPrivacy || 'everyone'
+  );
+
+  useEffect(() => {
+    if (user?.settings) {
+      if (user.settings.readReceipts !== undefined) setReadReceipts(user.settings.readReceipts);
+      if (user.settings.lastSeenPrivacy) setLastSeen(user.settings.lastSeenPrivacy);
+    }
+  }, [user?.settings]);
+
+  const handleLastSeenChange = (option: 'everyone' | 'contacts' | 'nobody') => {
+    setLastSeen(option);
+    updateSettings({ lastSeenPrivacy: option });
+  };
+
+  const handleReadReceiptsToggle = (val: boolean) => {
+    setReadReceipts(val);
+    updateSettings({ readReceipts: val });
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -34,7 +59,7 @@ export default function PrivacySettingsScreen() {
               <React.Fragment key={option}>
                 <TouchableOpacity
                   style={styles.optionRow}
-                  onPress={() => setLastSeen(option)}
+                  onPress={() => handleLastSeenChange(option)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.optionText}>
@@ -56,12 +81,12 @@ export default function PrivacySettingsScreen() {
               <View style={styles.settingTextContainer}>
                 <Text style={styles.settingTitle}>Read Receipts</Text>
                 <Text style={styles.settingSubtitle}>
-                  If turned off, you won't send or see read receipts (blue double checkmarks).
+                  If turned off, you won't send or see read receipts (amber/golden checkmarks).
                 </Text>
               </View>
               <Switch
                 value={readReceipts}
-                onValueChange={setReadReceipts}
+                onValueChange={handleReadReceiptsToggle}
                 trackColor={{ false: '#E5E7EB', true: COLORS.primary }}
                 thumbColor="#FFFFFF"
               />
@@ -73,7 +98,11 @@ export default function PrivacySettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>SECURITY</Text>
           <View style={styles.card}>
-            <TouchableOpacity style={styles.linkRow} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.linkRow}
+              activeOpacity={0.7}
+              onPress={() => Alert.alert('Blocked Contacts', 'You currently have no blocked contacts in your flock.')}
+            >
               <Text style={styles.linkText}>Blocked Contacts</Text>
               <View style={styles.linkRight}>
                 <Text style={styles.linkBadge}>0</Text>
@@ -90,7 +119,7 @@ export default function PrivacySettingsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background, // Feather Ivory #FAF9F6
   },
   header: {
     flexDirection: 'row',
@@ -99,7 +128,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.background,
   },
   backButton: {
     padding: 2,
@@ -119,16 +149,16 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.textSecondary,
     marginBottom: 10,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: COLORS.border,
     overflow: 'hidden',
   },
   optionRow: {
@@ -138,7 +168,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
   },
@@ -153,7 +183,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   settingTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 2,
@@ -170,7 +200,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   linkText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
   },
@@ -179,13 +209,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkBadge: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
     marginRight: 8,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: COLORS.border,
     marginLeft: 16,
   },
 });

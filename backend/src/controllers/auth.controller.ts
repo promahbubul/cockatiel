@@ -110,6 +110,7 @@ export async function verifyEmail(request: FastifyRequest, reply: FastifyReply) 
       avatarUrl: user.avatarUrl,
       about: user.about,
       isOnline: user.isOnline,
+      settings: user.settings || {},
     },
   });
 }
@@ -168,6 +169,7 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
       avatarUrl: user.avatarUrl,
       about: user.about,
       isOnline: user.isOnline,
+      settings: user.settings || {},
     },
   });
 }
@@ -314,6 +316,7 @@ export async function verifyOtp(request: FastifyRequest, reply: FastifyReply) {
       avatarUrl: user.avatarUrl,
       about: user.about,
       isOnline: user.isOnline,
+      settings: user.settings || {},
     },
   });
 }
@@ -346,6 +349,7 @@ export async function updateProfile(request: FastifyRequest, reply: FastifyReply
       avatarUrl: user.avatarUrl,
       about: user.about,
       isOnline: user.isOnline,
+      settings: user.settings || {},
     },
   });
 }
@@ -367,6 +371,7 @@ export async function getMe(request: FastifyRequest, reply: FastifyReply) {
       about: user.about,
       isOnline: user.isOnline,
       lastSeen: user.lastSeen,
+      settings: user.settings || {},
     },
   });
 }

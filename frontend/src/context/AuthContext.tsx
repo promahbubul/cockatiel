@@ -10,6 +10,14 @@ export interface UserProfile {
   avatarUrl: string;
   about?: string;
   isOnline?: boolean;
+  settings?: {
+    showNotifications?: boolean;
+    messagePreviews?: boolean;
+    sounds?: boolean;
+    vibrate?: boolean;
+    readReceipts?: boolean;
+    lastSeenPrivacy?: 'everyone' | 'contacts' | 'nobody';
+  };
 }
 
 interface AuthContextType {
@@ -23,6 +31,7 @@ interface AuthContextType {
   resetPassword: (email: string, code: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (profile: { displayName?: string; about?: string; avatarUrl?: string }) => Promise<void>;
+  updateSettings: (settings: Record<string, any>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -36,6 +45,7 @@ const AuthContext = createContext<AuthContextType>({
   resetPassword: async () => ({ success: false }),
   logout: async () => {},
   updateUser: async () => {},
+  updateSettings: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -201,6 +211,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateSettings = async (settings: Record<string, any>) => {
+    try {
+      setUser((prev) => (prev ? { ...prev, settings: { ...(prev.settings || {}), ...settings } } : prev));
+      const res = await api.users.updateSettings(settings);
+      if (res.success && res.settings) {
+        setUser((prev) => (prev ? { ...prev, settings: res.settings } : prev));
+      }
+    } catch (err) {
+      console.error('[AuthContext] Update settings error:', err);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -214,6 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetPassword,
         logout,
         updateUser,
+        updateSettings,
       }}
     >
       {children}

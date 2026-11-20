@@ -74,3 +74,59 @@ export async function getUserById(request: FastifyRequest, reply: FastifyReply) 
     },
   });
 }
+
+export async function updateSettings(request: FastifyRequest, reply: FastifyReply) {
+  const currentUserId = (request as any).user?.userId;
+  const user = await User.findById(currentUserId);
+
+  if (!user) {
+    return reply.status(404).send({ error: 'User not found' });
+  }
+
+  const body = (request.body || {}) as any;
+
+  if (!user.settings) {
+    user.settings = {
+      showNotifications: true,
+      messagePreviews: true,
+      sounds: true,
+      vibrate: true,
+      readReceipts: true,
+      lastSeenPrivacy: 'everyone',
+    };
+  }
+
+  if (body.showNotifications !== undefined) user.settings.showNotifications = Boolean(body.showNotifications);
+  if (body.messagePreviews !== undefined) user.settings.messagePreviews = Boolean(body.messagePreviews);
+  if (body.sounds !== undefined) user.settings.sounds = Boolean(body.sounds);
+  if (body.vibrate !== undefined) user.settings.vibrate = Boolean(body.vibrate);
+  if (body.readReceipts !== undefined) user.settings.readReceipts = Boolean(body.readReceipts);
+  if (body.lastSeenPrivacy !== undefined && ['everyone', 'contacts', 'nobody'].includes(body.lastSeenPrivacy)) {
+    user.settings.lastSeenPrivacy = body.lastSeenPrivacy;
+  }
+
+  user.markModified('settings');
+  await user.save();
+
+  return reply.send({
+    success: true,
+    settings: user.settings,
+  });
+}
+
+export async function submitFeedback(request: FastifyRequest, reply: FastifyReply) {
+  const currentUserId = (request as any).user?.userId;
+  const { category, subject, message } = (request.body || {}) as any;
+
+  if (!message || !message.trim()) {
+    return reply.status(400).send({ error: 'Message cannot be empty' });
+  }
+
+  console.log(`📩 [User Feedback] From: ${currentUserId}, Category: ${category || 'General'}, Subject: ${subject || 'No Subject'}`);
+  console.log(`Message: ${message}`);
+
+  return reply.send({
+    success: true,
+    message: 'Thank you for your feedback! The Cockatiel team will review it shortly.',
+  });
+}
