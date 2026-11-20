@@ -45,6 +45,7 @@ import { Avatar } from '../../src/components/Avatar';
 import { MessageBubble } from '../../src/components/MessageBubble';
 import { api } from '../../src/services/api';
 import { socketService } from '../../src/services/socket';
+import { chatCache } from '../../src/services/chatCache';
 import { useAuth } from '../../src/context/AuthContext';
 
 const REACTION_EMOJIS = ['❤️', '🦜', '🔥', '👍', '😂', '😮'];
@@ -103,6 +104,18 @@ export default function ConversationScreen() {
   const typingTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
+    // Instant offline load from cache
+    chatCache.getCachedMessages(chatId).then((cached) => {
+      if (cached && cached.length > 0) {
+        setMessages(cached);
+      }
+    });
+    chatCache.getDraft(chatId).then((draft) => {
+      if (draft) {
+        setInputText(draft);
+      }
+    });
+
     // Join socket room
     socketService.joinChat(chatId);
 
@@ -272,8 +285,16 @@ export default function ConversationScreen() {
     };
   }, [chatId, user?.id]);
 
+  // Persist messages to offline cache
+  useEffect(() => {
+    if (messages.length > 0) {
+      chatCache.saveMessages(chatId, messages);
+    }
+  }, [messages, chatId]);
+
   const handleInputChange = (text: string) => {
     setInputText(text);
+    chatCache.saveDraft(chatId, text);
 
     if (user?.id) {
       socketService.sendTypingStart(chatId, user.id, user.displayName);
@@ -288,6 +309,7 @@ export default function ConversationScreen() {
     if (!inputText.trim()) return;
     const content = inputText.trim();
     setInputText('');
+    chatCache.clearDraft(chatId);
 
     const currentUserId = user?.id || CURRENT_USER.id;
     const currentUserName = user?.displayName || CURRENT_USER.name;

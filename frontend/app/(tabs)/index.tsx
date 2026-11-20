@@ -18,6 +18,7 @@ import { Avatar } from '../../src/components/Avatar';
 import { ChatListItem } from '../../src/components/ChatListItem';
 import { api } from '../../src/services/api';
 import { socketService } from '../../src/services/socket';
+import { chatCache } from '../../src/services/chatCache';
 import { Chat } from '../../src/types';
 
 export default function ChatsScreen() {
@@ -45,6 +46,7 @@ export default function ChatsScreen() {
           unreadCount: c.unreadCount || 0,
         }));
         setChats(formatted);
+        chatCache.saveChatList(formatted);
       }
     } catch {
       // Keep existing/mock chats if backend is still initializing
@@ -69,6 +71,13 @@ export default function ChatsScreen() {
   };
 
   useEffect(() => {
+    // Instant offline render from cache
+    chatCache.getCachedChatList().then((cached) => {
+      if (cached && cached.length > 0) {
+        setChats(cached);
+      }
+    });
+
     fetchChats();
     fetchContacts();
 
