@@ -34,6 +34,8 @@ import {
   Image as ImageIcon,
   FileText,
   Reply,
+  Pin,
+  PinOff,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONVERSATION_EMMA, CURRENT_USER } from '../../src/constants/mockData';
@@ -80,6 +82,9 @@ export default function ConversationScreen() {
   // Quoted Reply state
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
+  // Pinned Message state
+  const [pinnedMessage, setPinnedMessage] = useState<any>(null);
+
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -103,6 +108,9 @@ export default function ConversationScreen() {
           ]);
 
           if (chatRes?.success && chatRes.chat) {
+            if (chatRes.chat.pinnedMessage) {
+              setPinnedMessage(chatRes.chat.pinnedMessage);
+            }
             const other = chatRes.chat.participants?.find((p: any) => p.id !== user?.id);
             if (other) {
               setRecipientId(other.id);
@@ -223,6 +231,23 @@ export default function ConversationScreen() {
       }
     });
 
+    // Pinned message listeners
+    const socket = socketService.getSocket();
+    const handlePinned = (data: any) => {
+      if (data.chatId === chatId) {
+        setPinnedMessage(data);
+      }
+    };
+    const handleUnpinned = (data: any) => {
+      if (data.chatId === chatId) {
+        setPinnedMessage(null);
+      }
+    };
+    if (socket) {
+      socket.on('chat:pinned', handlePinned);
+      socket.on('chat:unpinned', handleUnpinned);
+    }
+
     return () => {
       socketService.leaveChat(chatId);
       unsubscribeMessage?.();
@@ -231,6 +256,10 @@ export default function ConversationScreen() {
       unsubUserStatus?.();
       unsubTypingStart?.();
       unsubTypingStop?.();
+      if (socket) {
+        socket.off('chat:pinned', handlePinned);
+        socket.off('chat:unpinned', handleUnpinned);
+      }
       clearInterval(recordingIntervalRef.current);
     };
   }, [chatId, user?.id]);
@@ -673,6 +702,34 @@ export default function ConversationScreen() {
     }
   };
 
+  const handlePinMessage = async (msg: Message) => {
+    setSelectedMessage(null);
+    const pinPayload = {
+      messageId: msg.id,
+      text: msg.text || (msg.imageUrl ? 'Photo 📷' : msg.audioUrl ? 'Voice Note 🎙️' : 'Attachment'),
+      senderName: msg.senderName,
+    };
+    setPinnedMessage({ ...pinPayload, chatId });
+    if (chatId.length === 24) {
+      try {
+        await api.chats.pinMessage(chatId, pinPayload);
+      } catch (err: any) {
+        Alert.alert('Pin Error', err.message || 'Could not pin message');
+      }
+    }
+  };
+
+  const handleUnpinMessage = async () => {
+    setPinnedMessage(null);
+    if (chatId.length === 24) {
+      try {
+        await api.chats.unpinMessage(chatId);
+      } catch (err: any) {
+        Alert.alert('Unpin Error', err.message || 'Could not unpin message');
+      }
+    }
+  };
+
   const handleStartCall = (callType: 'audio' | 'video') => {
     const roomName = `call_${Date.now()}`;
     const targetUserId = recipientId || (chatId.startsWith('chat_') ? chatId.replace('chat_', '') : '');
@@ -806,6 +863,48 @@ export default function ConversationScreen() {
               <X size={16} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
+        </View>
+      )}
+
+      {/* Pinned Message Banner */}
+      {pinnedMessage && (
+        <View style={styles.pinnedBanner}>
+          <TouchableOpacity
+            style={styles.pinnedLeft}
+            onPress={() => {
+              const targetId = pinnedMessage.messageId || pinnedMessage.id;
+              const idx = displayMessages.findIndex((m) => m.id === targetId);
+              if (idx >= 0) {
+                flatListRef.current?.scrollToIndex({ index: idx, animated: true });
+              } else {
+                Alert.alert(
+                  'Pinned Message',
+                  `${pinnedMessage.senderName}: ${pinnedMessage.text}`
+                );
+              }
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={styles.pinnedIconCircle}>
+              <Pin size={13} color="#D97706" />
+            </View>
+            <View style={styles.pinnedTextCol}>
+              <Text style={styles.pinnedSender} numberOfLines={1}>
+                Pinned Message • {pinnedMessage.senderName}
+              </Text>
+              <Text style={styles.pinnedText} numberOfLines={1}>
+                {pinnedMessage.text}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleUnpinMessage}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.unpinBtn}
+          >
+            <X size={16} color={COLORS.textSecondary} />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -998,6 +1097,32 @@ export default function ConversationScreen() {
                 >
                   <Reply size={18} color={COLORS.primary} />
                   <Text style={styles.actionMenuText}>Reply</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={() => {
+                    const targetId = pinnedMessage?.messageId || pinnedMessage?.id;
+                    if (targetId === selectedMessage.id) {
+                      handleUnpinMessage();
+                      setSelectedMessage(null);
+                    } else {
+                      handlePinMessage(selectedMessage);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  {(pinnedMessage?.messageId || pinnedMessage?.id) === selectedMessage.id ? (
+                    <>
+                      <PinOff size={18} color="#D97706" />
+                      <Text style={styles.actionMenuText}>Unpin Message</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Pin size={18} color="#D97706" />
+                      <Text style={styles.actionMenuText}>Pin Message</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
 
                 {selectedMessage.isOutgoing && (
@@ -1540,6 +1665,48 @@ const styles = StyleSheet.create({
   },
   replyCancelBtn: {
     padding: 4,
+    marginLeft: 8,
+  },
+  pinnedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB', // Light amber background
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  pinnedLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pinnedIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  pinnedTextCol: {
+    flex: 1,
+  },
+  pinnedSender: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#B45309',
+    marginBottom: 1,
+  },
+  pinnedText: {
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  unpinBtn: {
+    padding: 6,
     marginLeft: 8,
   },
 });

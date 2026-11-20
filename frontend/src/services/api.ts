@@ -156,6 +156,15 @@ export const api = {
       request<{ success: boolean; message: string }>(`/chats/${chatId}/members/${memberId}`, {
         method: 'DELETE',
       }),
+    pinMessage: (chatId: string, payload: { messageId: string; text?: string; senderName?: string }) =>
+      request<{ success: boolean; pinnedMessage: any }>(`/chats/${chatId}/pin`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    unpinMessage: (chatId: string) =>
+      request<{ success: boolean; message: string }>(`/chats/${chatId}/pin`, {
+        method: 'DELETE',
+      }),
   },
 
   // Messages

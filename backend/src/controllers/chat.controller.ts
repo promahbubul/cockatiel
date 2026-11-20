@@ -84,6 +84,15 @@ export async function getChatById(request: FastifyRequest<{ Params: { id: string
       })),
       lastMessage: chat.lastMessage,
       admins: (chat.admins || []).map((a: any) => a.toString()),
+      pinnedMessage: chat.pinnedMessage
+        ? {
+            messageId: chat.pinnedMessage.messageId?.toString(),
+            text: chat.pinnedMessage.text,
+            senderName: chat.pinnedMessage.senderName,
+            pinnedAt: chat.pinnedMessage.pinnedAt,
+            pinnedBy: chat.pinnedMessage.pinnedBy?.toString(),
+          }
+        : null,
       unreadCount: (chat.unreadCounts && (chat.unreadCounts[currentUserId] || (chat.unreadCounts as any).get?.(currentUserId))) || 0,
       createdAt: chat.createdAt,
     },
@@ -364,5 +373,92 @@ export async function removeMember(
   return reply.send({
     success: true,
     message: isSelf ? 'Left group successfully' : 'Member removed successfully',
+  });
+}
+
+export async function pinMessage(
+  request: FastifyRequest<{
+    Params: { id: string };
+    Body: { messageId: string; text?: string; senderName?: string };
+  }>,
+  reply: FastifyReply
+) {
+  const currentUserId = (request as any).user.userId;
+  const { id } = request.params;
+  const { messageId, text, senderName } = request.body || {};
+
+  if (!messageId) {
+    return reply.status(400).send({ error: 'messageId is required' });
+  }
+
+  const chat = await Chat.findOne({
+    _id: id,
+    participants: new Types.ObjectId(currentUserId),
+  });
+
+  if (!chat) {
+    return reply.status(404).send({ error: 'Chat not found or access denied' });
+  }
+
+  const pinnedData = {
+    messageId: new Types.ObjectId(messageId),
+    text: text || 'Pinned message',
+    senderName: senderName || 'User',
+    pinnedAt: new Date(),
+    pinnedBy: new Types.ObjectId(currentUserId),
+  };
+
+  chat.pinnedMessage = pinnedData as any;
+  await chat.save();
+
+  const formattedPinned = {
+    chatId: id,
+    messageId,
+    text: pinnedData.text,
+    senderName: pinnedData.senderName,
+    pinnedAt: pinnedData.pinnedAt,
+    pinnedBy: currentUserId,
+  };
+
+  const io = getIO();
+  if (io) {
+    io.to(`chat:${id}`).emit('chat:pinned', formattedPinned);
+  }
+
+  return reply.send({
+    success: true,
+    pinnedMessage: formattedPinned,
+  });
+}
+
+export async function unpinMessage(
+  request: FastifyRequest<{
+    Params: { id: string };
+  }>,
+  reply: FastifyReply
+) {
+  const currentUserId = (request as any).user.userId;
+  const { id } = request.params;
+
+  const chat = await Chat.findOne({
+    _id: id,
+    participants: new Types.ObjectId(currentUserId),
+  });
+
+  if (!chat) {
+    return reply.status(404).send({ error: 'Chat not found or access denied' });
+  }
+
+  chat.pinnedMessage = undefined;
+  await chat.save();
+
+  const io = getIO();
+  if (io) {
+    io.to(`chat:${id}`).emit('chat:unpinned', { chatId: id });
+  }
+
+  return reply.send({
+    success: true,
+    message: 'Message unpinned successfully',
   });
 }
