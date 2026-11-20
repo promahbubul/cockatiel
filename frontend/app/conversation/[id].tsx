@@ -27,6 +27,8 @@ import {
   Mic,
   Trash2,
   Copy,
+  Search,
+  X,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { MOCK_CONVERSATION_EMMA, CURRENT_USER } from '../../src/constants/mockData';
@@ -62,6 +64,10 @@ export default function ConversationScreen() {
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+
+  // In-chat search state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -564,6 +570,13 @@ export default function ConversationScreen() {
     });
   };
 
+  const displayMessages =
+    isSearchOpen && searchQuery.trim()
+      ? messages.filter((m) =>
+          m.text?.toLowerCase().includes(searchQuery.toLowerCase().trim())
+        )
+      : messages;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Header */}
@@ -601,6 +614,16 @@ export default function ConversationScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerActionButton}
+            onPress={() => {
+              setIsSearchOpen((prev) => !prev);
+              if (isSearchOpen) setSearchQuery('');
+            }}
+            activeOpacity={0.7}
+          >
+            <Search size={21} color={isSearchOpen ? COLORS.primary : COLORS.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerActionButton}
             onPress={() => handleStartCall('audio')}
             activeOpacity={0.7}
           >
@@ -616,6 +639,43 @@ export default function ConversationScreen() {
         </View>
       </View>
 
+      {/* In-Chat Search Bar */}
+      {isSearchOpen && (
+        <View style={styles.inChatSearchContainer}>
+          <View style={styles.inChatSearchBar}>
+            <Search size={16} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
+            <TextInput
+              style={styles.inChatSearchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search in this chat..."
+              placeholderTextColor={COLORS.textSecondary}
+              autoFocus
+            />
+            {searchQuery.length > 0 && (
+              <View style={styles.searchCountBadge}>
+                <Text style={styles.searchCountText}>
+                  {displayMessages.length} {displayMessages.length === 1 ? 'match' : 'matches'}
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity
+              onPress={() => {
+                if (searchQuery.length > 0) {
+                  setSearchQuery('');
+                } else {
+                  setIsSearchOpen(false);
+                }
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ marginLeft: 6 }}
+            >
+              <X size={16} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Messages */}
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
@@ -624,7 +684,7 @@ export default function ConversationScreen() {
       >
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={displayMessages}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
             <View style={styles.dateSeparator}>
@@ -643,13 +703,23 @@ export default function ConversationScreen() {
           contentContainerStyle={styles.messageListContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <View style={styles.emptyConversationContainer}>
-              <Avatar uri={chatInfo.avatarUrl} size={80} isOnline={chatInfo.isOnline} />
-              <Text style={styles.emptyConversationTitle}>{chatInfo.title}</Text>
-              <Text style={styles.emptyConversationSubtitle}>
-                Wave hello and start your conversation with {chatInfo.title}! 🦜
-              </Text>
-            </View>
+            isSearchOpen && searchQuery.trim() ? (
+              <View style={styles.emptySearchBox}>
+                <Search size={32} color={COLORS.textSecondary} style={{ marginBottom: 8 }} />
+                <Text style={styles.emptySearchTitle}>No messages found</Text>
+                <Text style={styles.emptySearchSubtitle}>
+                  No messages matching "{searchQuery}" in this flock chat.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.emptyConversationContainer}>
+                <Avatar uri={chatInfo.avatarUrl} size={80} isOnline={chatInfo.isOnline} />
+                <Text style={styles.emptyConversationTitle}>{chatInfo.title}</Text>
+                <Text style={styles.emptyConversationSubtitle}>
+                  Wave hello and start your conversation with {chatInfo.title}! 🦜
+                </Text>
+              </View>
+            )
           }
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
@@ -1089,5 +1159,58 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#EF4444',
+  },
+  inChatSearchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  inChatSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  inChatSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+    paddingVertical: 2,
+  },
+  searchCountBadge: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginRight: 4,
+  },
+  searchCountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  emptySearchBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptySearchTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  emptySearchSubtitle: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
