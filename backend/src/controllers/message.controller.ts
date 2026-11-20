@@ -12,7 +12,10 @@ export async function getMessages(request: FastifyRequest, reply: FastifyReply) 
   const limit = Math.min(parseInt((request.query as any)?.limit || '50', 10), 100);
   const before = (request.query as any)?.before;
 
-  const query: any = { chatId: new Types.ObjectId(chatId) };
+  const query: any = {
+    chatId: new Types.ObjectId(chatId),
+    deletedFor: { $ne: new Types.ObjectId(currentUserId) },
+  };
   if (before) {
     query.createdAt = { $lt: new Date(before) };
   }
@@ -228,54 +231,71 @@ export async function uploadMedia(request: FastifyRequest, reply: FastifyReply) 
 }
 
 export async function deleteMessage(
-  request: FastifyRequest<{ Params: { id: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Querystring: { forEveryone?: string } }>,
   reply: FastifyReply
 ) {
   const currentUserId = (request as any).user.userId;
   const { id } = request.params;
+  const forEveryone = request.query?.forEveryone === 'true';
 
   const message = await Message.findById(id);
   if (!message) {
     return reply.status(404).send({ error: 'Message not found' });
   }
 
-  if (message.senderId.toString() !== currentUserId) {
-    return reply.status(403).send({ error: 'You can only unsend your own messages' });
-  }
-
   const chatId = message.chatId.toString();
-  await Message.findByIdAndDelete(id);
 
-  // Update chat last message
-  const chat = await Chat.findById(chatId);
-  if (chat) {
-    const lastMsg = await Message.findOne({ chatId: new Types.ObjectId(chatId) }).sort({ createdAt: -1 });
-    if (lastMsg) {
-      chat.lastMessage = {
-        text: lastMsg.content || (lastMsg.mediaType ? `[${lastMsg.mediaType}]` : ''),
-        senderId: lastMsg.senderId,
-        timestamp: lastMsg.createdAt,
-      };
-    } else {
-      chat.lastMessage = undefined;
+  if (forEveryone) {
+    if (message.senderId.toString() !== currentUserId) {
+      return reply.status(403).send({ error: 'You can only unsend your own messages' });
     }
-    await chat.save();
-  }
 
-  // Real-time broadcast
-  const io = getIO();
-  if (io) {
-    io.to(`chat:${chatId}`).emit('message:deleted', { messageId: id, chatId });
-    if (chat && chat.participants) {
-      chat.participants.forEach((pId) => {
-        io.to(`user:${pId.toString()}`).emit('message:deleted', { messageId: id, chatId });
-      });
+    await Message.findByIdAndDelete(id);
+
+    // Update chat last message
+    const chat = await Chat.findById(chatId);
+    if (chat) {
+      const lastMsg = await Message.findOne({ chatId: new Types.ObjectId(chatId) }).sort({ createdAt: -1 });
+      if (lastMsg) {
+        chat.lastMessage = {
+          text: lastMsg.content || (lastMsg.mediaType ? `[${lastMsg.mediaType}]` : ''),
+          senderId: lastMsg.senderId,
+          timestamp: lastMsg.createdAt,
+        };
+      } else {
+        chat.lastMessage = undefined;
+      }
+      await chat.save();
     }
-  }
 
-  return reply.send({
-    success: true,
-    messageId: id,
-    chatId,
-  });
+    // Real-time broadcast
+    const io = getIO();
+    if (io) {
+      io.to(`chat:${chatId}`).emit('message:deleted', { messageId: id, chatId });
+      if (chat && chat.participants) {
+        chat.participants.forEach((pId) => {
+          io.to(`user:${pId.toString()}`).emit('message:deleted', { messageId: id, chatId });
+        });
+      }
+    }
+
+    return reply.send({
+      success: true,
+      messageId: id,
+      chatId,
+      forEveryone: true,
+    });
+  } else {
+    // Delete for Me: Hide from current user
+    await Message.findByIdAndUpdate(id, {
+      $addToSet: { deletedFor: new Types.ObjectId(currentUserId) },
+    });
+
+    return reply.send({
+      success: true,
+      messageId: id,
+      chatId,
+      forEveryone: false,
+    });
+  }
 }

@@ -697,13 +697,13 @@ export default function ConversationScreen() {
     return 'Offline';
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
+  const handleDeleteMessage = async (messageId: string, forEveryone: boolean = false) => {
     setSelectedMessage(null);
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
 
     if (messageId.length === 24) {
       try {
-        await api.messages.delete(messageId);
+        await api.messages.delete(messageId, forEveryone);
       } catch (err) {
         console.error('Delete message error:', err);
       }
@@ -1207,14 +1207,25 @@ export default function ConversationScreen() {
                   )}
                 </TouchableOpacity>
 
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={() => handleDeleteMessage(selectedMessage.id, false)}
+                  activeOpacity={0.7}
+                >
+                  <Trash2 size={18} color="#EF4444" />
+                  <Text style={styles.actionMenuDangerText}>Delete for Me</Text>
+                </TouchableOpacity>
+
                 {selectedMessage.isOutgoing && (
                   <TouchableOpacity
                     style={styles.actionMenuItem}
-                    onPress={() => handleDeleteMessage(selectedMessage.id)}
+                    onPress={() => handleDeleteMessage(selectedMessage.id, true)}
                     activeOpacity={0.7}
                   >
-                    <Trash2 size={18} color="#EF4444" />
-                    <Text style={styles.actionMenuDangerText}>Unsend for Everyone</Text>
+                    <Trash2 size={18} color="#DC2626" />
+                    <Text style={[styles.actionMenuDangerText, { fontWeight: '800' }]}>
+                      Delete for Everyone
+                    </Text>
                   </TouchableOpacity>
                 )}
 

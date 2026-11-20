@@ -23,6 +23,7 @@ export interface IMessage extends Document {
   status: 'SENT' | 'DELIVERED' | 'READ';
   reactions: IReaction[];
   readBy: Types.ObjectId[];
+  deletedFor: Types.ObjectId[];
   replyTo?: IReplyTo;
   createdAt: Date;
   updatedAt: Date;
@@ -48,6 +49,7 @@ const MessageSchema = new Schema<IMessage>(
     status: { type: String, enum: ['SENT', 'DELIVERED', 'READ'], default: 'SENT' },
     reactions: [ReactionSchema],
     readBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    deletedFor: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     replyTo: {
       messageId: { type: Schema.Types.ObjectId, ref: 'Message' },
       senderName: { type: String },

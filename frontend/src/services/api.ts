@@ -198,10 +198,13 @@ export const api = {
         body: JSON.stringify({ messageId, emoji }),
       }),
 
-    delete: (messageId: string) =>
-      request<{ success: boolean; messageId: string; chatId: string }>(`/messages/${messageId}`, {
-        method: 'DELETE',
-      }),
+    delete: (messageId: string, forEveryone: boolean = true) =>
+      request<{ success: boolean; messageId: string; chatId: string; forEveryone?: boolean }>(
+        `/messages/${messageId}${forEveryone ? '?forEveryone=true' : '?forEveryone=false'}`,
+        {
+          method: 'DELETE',
+        }
+      ),
   },
 
   // Media & Cloudinary Uploads
