@@ -35,6 +35,14 @@ export default function RingingScreen() {
       : 'Ringing...'
   );
 
+  const safeExit = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   useEffect(() => {
     // Auto-timeout if no answer after 22 seconds
     let noAnswerTimer: any;
@@ -42,7 +50,7 @@ export default function RingingScreen() {
       noAnswerTimer = setTimeout(() => {
         setCallStatus('No Answer');
         setTimeout(() => {
-          router.back();
+          safeExit();
         }, 1500);
       }, 22000);
     }
@@ -83,7 +91,7 @@ export default function RingingScreen() {
       clearTimeout(noAnswerTimer);
       setCallStatus(`Call ${payload?.reason || 'declined'}`);
       setTimeout(() => {
-        router.back();
+        safeExit();
       }, 1200);
     });
 
@@ -92,7 +100,7 @@ export default function RingingScreen() {
       clearTimeout(noAnswerTimer);
       setCallStatus('Call ended');
       setTimeout(() => {
-        router.back();
+        safeExit();
       }, 800);
     });
 
@@ -153,7 +161,7 @@ export default function RingingScreen() {
         socketService.endCall({ toUserId: targetUserId, roomName });
       }
     }
-    router.back();
+    safeExit();
   };
 
   return (

@@ -20,6 +20,14 @@ export default function AudioCallScreen() {
   const [isSpeaker, setIsSpeaker] = useState(false);
   const secondsRef = useRef(0);
 
+  const safeExit = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   useEffect(() => {
     const timer = setInterval(() => {
       setSeconds((prev) => {
@@ -29,7 +37,7 @@ export default function AudioCallScreen() {
     }, 1000);
 
     const unsubEnd = socketService.onCallEnded(() => {
-      router.back();
+      safeExit();
     });
 
     return () => {
@@ -61,7 +69,7 @@ export default function AudioCallScreen() {
         .catch(() => {});
     }
 
-    router.back();
+    safeExit();
   };
 
   return (

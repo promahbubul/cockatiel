@@ -21,6 +21,14 @@ export default function VideoCallScreen() {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const secondsRef = useRef(0);
 
+  const safeExit = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   useEffect(() => {
     const timer = setInterval(() => {
       setSeconds((prev) => {
@@ -30,7 +38,7 @@ export default function VideoCallScreen() {
     }, 1000);
 
     const unsubEnd = socketService.onCallEnded(() => {
-      router.back();
+      safeExit();
     });
 
     return () => {
@@ -62,7 +70,7 @@ export default function VideoCallScreen() {
         .catch(() => {});
     }
 
-    router.back();
+    safeExit();
   };
 
   return (
