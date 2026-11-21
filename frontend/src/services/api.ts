@@ -253,6 +253,15 @@ export const api = {
   // Calls
   calls: {
     getCalls: () => request<{ success: boolean; calls: any[] }>('/calls'),
+    getAgoraToken: (channelName: string, uid?: number) =>
+      request<{
+        success: boolean;
+        token: string;
+        appId: string;
+        channelName: string;
+        uid: number;
+        expiresAt: number;
+      }>(`/calls/agora-token?channelName=${encodeURIComponent(channelName)}${uid ? `&uid=${uid}` : ''}`),
     logCall: (payload: {
       receiverId: string;
       callType: 'audio' | 'video';

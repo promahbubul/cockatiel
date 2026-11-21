@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { AGORA_APP_ID } from '../config/agora';
+import { api } from './api';
 
 let AgoraRTC: any = null;
 
@@ -39,6 +40,7 @@ export class AgoraService {
 
       this.client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
       const channel = this.sanitizeChannel(channelName);
+      const numericUid = Math.floor(Math.random() * 900000) + 100000;
 
       this.client.on('user-published', async (user: any, mediaType: string) => {
         try {
@@ -59,7 +61,18 @@ export class AgoraService {
         }
       });
 
-      await this.client.join(AGORA_APP_ID, channel, null, null);
+      // Obtain RTC token from backend
+      let token: string | null = null;
+      try {
+        const tokenRes = await api.calls.getAgoraToken(channel, numericUid);
+        if (tokenRes?.success && tokenRes?.token) {
+          token = tokenRes.token;
+        }
+      } catch (tokErr) {
+        console.warn('[AgoraService] Token fetch failed:', tokErr);
+      }
+
+      await this.client.join(AGORA_APP_ID, channel, token, numericUid);
       this.isJoined = true;
 
       // Create and publish local mic track
@@ -70,7 +83,7 @@ export class AgoraService {
       });
 
       await this.client.publish([this.localAudioTrack]);
-      console.log('[AgoraService] Audio call joined and published on channel:', channel);
+      console.log('[AgoraService] Audio call joined and published on channel:', channel, 'uid:', numericUid);
       return true;
     } catch (err) {
       console.error('[AgoraService] initAudioCall error:', err);
@@ -96,6 +109,7 @@ export class AgoraService {
 
       this.client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
       const channel = this.sanitizeChannel(channelName);
+      const numericUid = Math.floor(Math.random() * 900000) + 100000;
 
       this.client.on('user-published', async (user: any, mediaType: string) => {
         try {
@@ -124,7 +138,18 @@ export class AgoraService {
         if (mediaType === 'video') user.videoTrack?.stop();
       });
 
-      await this.client.join(AGORA_APP_ID, channel, null, null);
+      // Obtain RTC token from backend
+      let token: string | null = null;
+      try {
+        const tokenRes = await api.calls.getAgoraToken(channel, numericUid);
+        if (tokenRes?.success && tokenRes?.token) {
+          token = tokenRes.token;
+        }
+      } catch (tokErr) {
+        console.warn('[AgoraService] Token fetch failed:', tokErr);
+      }
+
+      await this.client.join(AGORA_APP_ID, channel, token, numericUid);
       this.isJoined = true;
 
       const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
@@ -143,7 +168,7 @@ export class AgoraService {
       }
 
       await this.client.publish([this.localAudioTrack, this.localVideoTrack]);
-      console.log('[AgoraService] Video call joined and published on channel:', channel);
+      console.log('[AgoraService] Video call joined and published on channel:', channel, 'uid:', numericUid);
       return true;
     } catch (err) {
       console.error('[AgoraService] initVideoCall error:', err);

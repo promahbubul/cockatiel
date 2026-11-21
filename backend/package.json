@@ -12,6 +12,7 @@
     "@fastify/cors": "^10.0.2",
     "@fastify/jwt": "^9.0.4",
     "@fastify/multipart": "^9.0.3",
+    "agora-access-token": "^2.0.4",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.5.1",
     "dotenv": "^16.4.7",
