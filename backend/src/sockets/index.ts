@@ -79,6 +79,7 @@ export function setupSocketIO(io: SocketIOServer) {
       caller: { id: string; displayName: string; avatarUrl: string };
       callType: 'audio' | 'video';
       roomName: string;
+      chatId?: string;
       sdpOffer?: any;
     }) => {
       console.log(`[Socket] Call initiated from ${payload.caller?.id} (${payload.caller?.displayName}) to target user ${payload.toUserId} (${payload.callType})`);
@@ -86,6 +87,7 @@ export function setupSocketIO(io: SocketIOServer) {
         caller: payload.caller,
         callType: payload.callType,
         roomName: payload.roomName,
+        chatId: payload.chatId,
         sdpOffer: payload.sdpOffer,
       });
     });

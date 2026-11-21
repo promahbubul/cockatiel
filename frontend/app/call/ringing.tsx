@@ -16,6 +16,7 @@ export default function RingingScreen() {
     toUserId,
     fromUserId,
     roomName: paramRoomName,
+    chatId: paramChatId,
   } = useLocalSearchParams();
 
   const callerName = (name as string) || 'User';
@@ -26,6 +27,24 @@ export default function RingingScreen() {
   const incoming = isIncoming === 'true';
   const targetUserId = (incoming ? fromUserId : toUserId) as string;
   const roomName = (paramRoomName as string) || `room_${Date.now()}`;
+  const chatId = (paramChatId as string) || '';
+
+  const sendMissedCallMessage = async () => {
+    if (chatId && !incoming) {
+      const missedText = isVideo ? '📹 Missed video call' : '📞 Missed audio call';
+      try {
+        const msgRes = await api.messages.send({
+          chatId,
+          content: missedText,
+        });
+        if (msgRes.success && msgRes.message) {
+          socketService.emitMessage(chatId, msgRes.message);
+        }
+      } catch (e) {
+        console.warn('Failed to log missed call message:', e);
+      }
+    }
+  };
 
   const [callStatus, setCallStatus] = useState<string>(
     incoming
@@ -49,6 +68,7 @@ export default function RingingScreen() {
     if (!incoming) {
       noAnswerTimer = setTimeout(() => {
         setCallStatus('No Answer');
+        sendMissedCallMessage();
         setTimeout(() => {
           safeExit();
         }, 1500);
@@ -69,6 +89,7 @@ export default function RingingScreen() {
               toUserId: targetUserId,
               roomName,
               isCaller: 'true',
+              chatId,
             },
           });
         } else {
@@ -80,6 +101,7 @@ export default function RingingScreen() {
               toUserId: targetUserId,
               roomName,
               isCaller: 'true',
+              chatId,
             },
           });
         }
@@ -90,6 +112,9 @@ export default function RingingScreen() {
     const unsubReject = socketService.onCallRejected((payload) => {
       clearTimeout(noAnswerTimer);
       setCallStatus(`Call ${payload?.reason || 'declined'}`);
+      if (!incoming) {
+        sendMissedCallMessage();
+      }
       setTimeout(() => {
         safeExit();
       }, 1200);
@@ -110,7 +135,7 @@ export default function RingingScreen() {
       unsubReject?.();
       unsubEnd?.();
     };
-  }, [callerName, callerAvatar, isVideo, targetUserId, roomName, incoming]);
+  }, [callerName, callerAvatar, isVideo, targetUserId, roomName, incoming, chatId]);
 
   const handleAccept = () => {
     if (targetUserId) {
@@ -126,6 +151,7 @@ export default function RingingScreen() {
           toUserId: targetUserId,
           roomName,
           isCaller: 'false',
+          chatId,
         },
       });
     } else {
@@ -137,6 +163,7 @@ export default function RingingScreen() {
           toUserId: targetUserId,
           roomName,
           isCaller: 'false',
+          chatId,
         },
       });
     }
@@ -159,6 +186,7 @@ export default function RingingScreen() {
     } else {
       if (targetUserId) {
         socketService.endCall({ toUserId: targetUserId, roomName });
+        sendMissedCallMessage();
       }
     }
     safeExit();
@@ -199,6 +227,7 @@ export default function RingingScreen() {
                         toUserId: targetUserId,
                         roomName,
                         isCaller: 'true',
+                        chatId,
                       },
                     });
                   } else {
@@ -210,6 +239,7 @@ export default function RingingScreen() {
                         toUserId: targetUserId,
                         roomName,
                         isCaller: 'true',
+                        chatId,
                       },
                     });
                   }

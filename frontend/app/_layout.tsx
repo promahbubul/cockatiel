@@ -21,6 +21,7 @@ function GlobalCallManager({ children }: { children: React.ReactNode }) {
           isIncoming: 'true',
           fromUserId: payload?.caller?.id || '',
           roomName: payload?.roomName || `room_${Date.now()}`,
+          chatId: payload?.chatId || '',
         },
       });
     });

@@ -879,6 +879,7 @@ export default function ConversationScreen() {
         },
         callType,
         roomName,
+        chatId,
       });
     }
 
@@ -891,6 +892,7 @@ export default function ConversationScreen() {
         isIncoming: 'false',
         toUserId: targetUserId || '',
         roomName,
+        chatId,
       },
     });
   };

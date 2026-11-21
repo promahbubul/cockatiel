@@ -5,20 +5,23 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Mic, MicOff, Volume2, VolumeX, PhoneOff, MessageSquare } from 'lucide-react-native';
 import { socketService } from '../../src/services/socket';
 import { api } from '../../src/services/api';
+import { agoraService } from '../../src/services/agoraService';
 
 export default function AudioCallScreen() {
   const router = useRouter();
-  const { name, avatar, toUserId, roomName, isCaller } = useLocalSearchParams();
+  const { name, avatar, toUserId, roomName, isCaller, chatId: paramChatId } = useLocalSearchParams();
   const callerName = (name as string) || 'User';
   const callerAvatar = (avatar as string) || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80';
   const targetUserId = (toUserId as string) || '';
-  const currentRoomName = (roomName as string) || '';
+  const currentRoomName = (roomName as string) || `call_${Date.now()}`;
   const isCallerUser = isCaller === 'true';
+  const chatId = (paramChatId as string) || '';
 
   const [seconds, setSeconds] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const secondsRef = useRef(0);
+  const hasEndedRef = useRef(false);
 
   const safeExit = () => {
     if (router.canGoBack()) {
@@ -28,7 +31,16 @@ export default function AudioCallScreen() {
     }
   };
 
+  const formatTime = (totalSec: number) => {
+    const mins = Math.floor(totalSec / 60).toString().padStart(2, '0');
+    const secs = (totalSec % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
+
+  // Join Agora Audio Channel on mount
   useEffect(() => {
+    agoraService.initAudioCall(currentRoomName);
+
     const timer = setInterval(() => {
       setSeconds((prev) => {
         secondsRef.current = prev + 1;
@@ -36,24 +48,35 @@ export default function AudioCallScreen() {
       });
     }, 1000);
 
-    const unsubEnd = socketService.onCallEnded(() => {
-      safeExit();
+    const unsubEnd = socketService.onCallEnded(async () => {
+      if (!hasEndedRef.current) {
+        hasEndedRef.current = true;
+        await agoraService.leave();
+        safeExit();
+      }
     });
 
     return () => {
       clearInterval(timer);
       unsubEnd?.();
+      agoraService.leave();
     };
-  }, []);
+  }, [currentRoomName]);
 
-  const formatTime = (totalSec: number) => {
-    const mins = Math.floor(totalSec / 60).toString().padStart(2, '0');
-    const secs = (totalSec % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
+  // Sync mute state with Agora
+  const toggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    agoraService.setMuted(nextMuted);
   };
 
-  const handleEndCall = () => {
+  const handleEndCall = async () => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+
     const duration = formatTime(secondsRef.current);
+
+    await agoraService.leave();
 
     if (targetUserId) {
       socketService.endCall({ toUserId: targetUserId, roomName: currentRoomName });
@@ -67,6 +90,21 @@ export default function AudioCallScreen() {
           roomName: currentRoomName,
         })
         .catch(() => {});
+    }
+
+    if (chatId) {
+      const callLogText = `📞 Audio call • ${duration}`;
+      try {
+        const msgRes = await api.messages.send({
+          chatId,
+          content: callLogText,
+        });
+        if (msgRes.success && msgRes.message) {
+          socketService.emitMessage(chatId, msgRes.message);
+        }
+      } catch (e) {
+        console.warn('Failed to log call end message:', e);
+      }
     }
 
     safeExit();
@@ -90,7 +128,7 @@ export default function AudioCallScreen() {
         <View style={styles.controlsGrid}>
           <TouchableOpacity
             style={[styles.controlBtn, isMuted && styles.controlBtnActive]}
-            onPress={() => setIsMuted(!isMuted)}
+            onPress={toggleMute}
             activeOpacity={0.8}
           >
             {isMuted ? <MicOff size={24} color="#EF4444" /> : <Mic size={24} color="#FFFFFF" />}
@@ -108,7 +146,7 @@ export default function AudioCallScreen() {
 
           <TouchableOpacity
             style={styles.controlBtn}
-            onPress={() => router.back()}
+            onPress={() => safeExit()}
             activeOpacity={0.8}
           >
             <MessageSquare size={24} color="#FFFFFF" />

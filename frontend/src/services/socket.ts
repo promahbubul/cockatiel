@@ -168,6 +168,7 @@ class SocketService {
     caller: { id: string; displayName: string; avatarUrl: string };
     callType: 'audio' | 'video';
     roomName: string;
+    chatId?: string;
     sdpOffer?: any;
   }) {
     console.log('[SocketService] Emitting call:initiate to:', payload.toUserId);

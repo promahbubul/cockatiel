@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Linking } from 'react-native';
-import { CheckCheck } from 'lucide-react-native';
+import { CheckCheck, PhoneCall, PhoneMissed, Video, VideoOff } from 'lucide-react-native';
 import { Message } from '../types';
 import { COLORS } from '../constants/theme';
 import { Avatar } from './Avatar';
@@ -113,7 +113,51 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
 
           {Boolean(message.text) && (
-            Boolean(message.mediaUrl && message.text?.startsWith('📄')) ? (
+            Boolean(message.text?.startsWith('📞') || message.text?.startsWith('📹')) ? (
+              <View style={styles.callLogCard}>
+                <View
+                  style={[
+                    styles.callIconBox,
+                    message.text?.includes('Missed')
+                      ? styles.callIconBoxMissed
+                      : (isOutgoing ? styles.callIconBoxOutgoing : styles.callIconBoxIncoming),
+                  ]}
+                >
+                  {message.text?.includes('Missed') ? (
+                    message.text?.startsWith('📹') ? (
+                      <VideoOff size={18} color="#EF4444" />
+                    ) : (
+                      <PhoneMissed size={18} color="#EF4444" />
+                    )
+                  ) : message.text?.startsWith('📹') ? (
+                    <Video size={18} color={isOutgoing ? '#FED7AA' : '#10B981'} />
+                  ) : (
+                    <PhoneCall size={18} color={isOutgoing ? '#FED7AA' : '#10B981'} />
+                  )}
+                </View>
+                <View style={styles.callLogDetails}>
+                  <Text
+                    style={[
+                      styles.callLogTitle,
+                      isOutgoing ? styles.outgoingText : styles.incomingText,
+                      message.text?.includes('Missed') && { color: isOutgoing ? '#FCA5A5' : '#EF4444' },
+                    ]}
+                  >
+                    {message.text?.includes('Missed')
+                      ? message.text?.startsWith('📹') ? 'Missed video call' : 'Missed audio call'
+                      : message.text?.startsWith('📹') ? 'Video call' : 'Audio call'}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.callLogSubtitle,
+                      isOutgoing ? { color: '#FFE4D6' } : { color: COLORS.textSecondary },
+                    ]}
+                  >
+                    {message.text?.replace(/^[📞📹]\s*/, '')}
+                  </Text>
+                </View>
+              </View>
+            ) : Boolean(message.mediaUrl && message.text?.startsWith('📄')) ? (
               <TouchableOpacity
                 onPress={() => Linking.openURL(message.mediaUrl!)}
                 style={styles.documentCard}
@@ -352,5 +396,41 @@ const styles = StyleSheet.create({
   quotedText: {
     fontSize: 12,
     lineHeight: 16,
+  },
+  callLogCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    gap: 10,
+    minWidth: 160,
+  },
+  callIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  callIconBoxMissed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  callIconBoxOutgoing: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  callIconBoxIncoming: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+  },
+  callLogDetails: {
+    flex: 1,
+  },
+  callLogTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  callLogSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
