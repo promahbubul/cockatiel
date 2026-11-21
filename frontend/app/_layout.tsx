@@ -9,7 +9,9 @@ function GlobalCallManager({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    console.log('[GlobalCallManager] Mounting and registering onIncomingCall listener');
     const unsub = socketService.onIncomingCall((payload) => {
+      console.log('[GlobalCallManager] INCOMING CALL RECEIVED:', payload);
       router.push({
         pathname: '/call/ringing',
         params: {

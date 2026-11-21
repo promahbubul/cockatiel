@@ -9,6 +9,7 @@ const SOCKET_URL =
 class SocketService {
   private socket: Socket | null = null;
   private currentUserId: string | null = null;
+  private listeners: Map<string, Set<(data: any) => void>> = new Map();
 
   connect(userId: string) {
     if (this.socket && this.currentUserId === userId && this.socket.connected) {
@@ -24,13 +25,54 @@ class SocketService {
     });
 
     this.socket.on('connect', () => {
-      console.log('[Socket] Connected with ID:', this.socket?.id);
+      console.log('[Socket] Connected with ID:', this.socket?.id, 'as user:', userId);
       this.socket?.emit('user:join', { userId });
+      this.bindAllListeners();
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('[Socket] Disconnected:', reason);
     });
+  }
+
+  private bindAllListeners() {
+    if (!this.socket) return;
+    this.listeners.forEach((callbacks, event) => {
+      this.socket?.off(event);
+      this.socket?.on(event, (data: any) => {
+        callbacks.forEach((cb) => {
+          try {
+            cb(data);
+          } catch (err) {
+            console.error(`[Socket] Error in listener for ${event}:`, err);
+          }
+        });
+      });
+    });
+  }
+
+  private registerListener(event: string, callback: (data: any) => void) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)!.add(callback);
+
+    if (this.socket) {
+      this.socket.off(event);
+      this.socket.on(event, (data: any) => {
+        this.listeners.get(event)?.forEach((cb) => {
+          try {
+            cb(data);
+          } catch (err) {
+            console.error(`[Socket] Error in listener for ${event}:`, err);
+          }
+        });
+      });
+    }
+
+    return () => {
+      this.listeners.get(event)?.delete(callback);
+    };
   }
 
   disconnect() {
@@ -67,71 +109,58 @@ class SocketService {
     this.socket?.emit('message:send', { chatId, message });
   }
 
-  // Event Listeners
+  // Event Listeners (Fully persistent across connections)
   onNewMessage(callback: (message: any) => void) {
-    this.socket?.on('message:new', callback);
-    return () => this.socket?.off('message:new', callback);
+    return this.registerListener('message:new', callback);
   }
 
   onTypingStart(callback: (data: { chatId: string; userId: string; userName: string }) => void) {
-    this.socket?.on('typing:start', callback);
-    return () => this.socket?.off('typing:start', callback);
+    return this.registerListener('typing:start', callback);
   }
 
   onTypingStop(callback: (data: { chatId: string; userId: string }) => void) {
-    this.socket?.on('typing:stop', callback);
-    return () => this.socket?.off('typing:stop', callback);
+    return this.registerListener('typing:stop', callback);
   }
 
   onUserStatus(callback: (data: { userId: string; isOnline: boolean; lastSeen?: string }) => void) {
-    this.socket?.on('user:status', callback);
-    return () => this.socket?.off('user:status', callback);
+    return this.registerListener('user:status', callback);
   }
 
   onOnlineList(callback: (userIds: string[]) => void) {
-    this.socket?.on('user:online_list', callback);
-    return () => this.socket?.off('user:online_list', callback);
+    return this.registerListener('user:online_list', callback);
   }
 
   onChatCreated(callback: (chat: any) => void) {
-    this.socket?.on('chat:created', callback);
-    return () => this.socket?.off('chat:created', callback);
+    return this.registerListener('chat:created', callback);
   }
 
   onChatUpdate(callback: (data: { chatId: string; lastMessage: any }) => void) {
-    this.socket?.on('chat:update', callback);
-    return () => this.socket?.off('chat:update', callback);
+    return this.registerListener('chat:update', callback);
   }
 
   onMessageReact(callback: (data: { messageId: string; chatId: string; reactions: any[] }) => void) {
-    this.socket?.on('message:react', callback);
-    return () => this.socket?.off('message:react', callback);
+    return this.registerListener('message:react', callback);
   }
 
   onMessageDeleted(callback: (data: { messageId: string; chatId: string }) => void) {
-    this.socket?.on('message:deleted', callback);
-    return () => this.socket?.off('message:deleted', callback);
+    return this.registerListener('message:deleted', callback);
   }
 
   // WebRTC / Calling Signaling
   onIncomingCall(callback: (payload: any) => void) {
-    this.socket?.on('call:incoming', callback);
-    return () => this.socket?.off('call:incoming', callback);
+    return this.registerListener('call:incoming', callback);
   }
 
   onCallAccepted(callback: (payload: any) => void) {
-    this.socket?.on('call:accepted', callback);
-    return () => this.socket?.off('call:accepted', callback);
+    return this.registerListener('call:accepted', callback);
   }
 
   onCallRejected(callback: (payload: any) => void) {
-    this.socket?.on('call:rejected', callback);
-    return () => this.socket?.off('call:rejected', callback);
+    return this.registerListener('call:rejected', callback);
   }
 
   onCallEnded(callback: (payload: any) => void) {
-    this.socket?.on('call:ended', callback);
-    return () => this.socket?.off('call:ended', callback);
+    return this.registerListener('call:ended', callback);
   }
 
   initiateCall(payload: {
@@ -141,18 +170,22 @@ class SocketService {
     roomName: string;
     sdpOffer?: any;
   }) {
+    console.log('[SocketService] Emitting call:initiate to:', payload.toUserId);
     this.socket?.emit('call:initiate', payload);
   }
 
   acceptCall(payload: { toUserId: string; roomName: string; sdpAnswer?: any }) {
+    console.log('[SocketService] Emitting call:accept to:', payload.toUserId);
     this.socket?.emit('call:accept', payload);
   }
 
   rejectCall(payload: { toUserId: string; roomName: string; reason?: string }) {
+    console.log('[SocketService] Emitting call:reject to:', payload.toUserId);
     this.socket?.emit('call:reject', payload);
   }
 
   endCall(payload: { toUserId: string; roomName: string }) {
+    console.log('[SocketService] Emitting call:end to:', payload.toUserId);
     this.socket?.emit('call:end', payload);
   }
 }

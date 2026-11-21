@@ -828,12 +828,46 @@ export default function ConversationScreen() {
     }
   };
 
-  const handleStartCall = (callType: 'audio' | 'video') => {
+  const handleStartCall = async (callType: 'audio' | 'video') => {
     const roomName = `call_${Date.now()}`;
-    const targetUserId = recipientId || (chatId.startsWith('chat_') ? chatId.replace('chat_', '') : '');
+    let targetUserId = recipientId || (chatId.startsWith('chat_') ? chatId.replace('chat_', '') : '');
+
+    // If targetUserId is not yet resolved, query the chat participants or contact list
+    if (!targetUserId || targetUserId === '1' || targetUserId === '2' || targetUserId === '3') {
+      if (chatId.length === 24) {
+        try {
+          const res = await api.chats.getById(chatId);
+          if (res.success && res.chat?.participants) {
+            const other = res.chat.participants.find((p: any) => p.id !== user?.id && p._id !== user?.id);
+            if (other) {
+              targetUserId = other.id || other._id;
+              setRecipientId(targetUserId);
+            }
+          }
+        } catch {}
+      }
+
+      if (!targetUserId || targetUserId.length < 10) {
+        try {
+          const contactsRes = await api.users.getContacts();
+          if (contactsRes.success && contactsRes.contacts) {
+            const matched = contactsRes.contacts.find((c: any) =>
+              c.displayName.toLowerCase().includes(chatInfo.title.toLowerCase())
+            );
+            if (matched) {
+              targetUserId = matched.id || matched._id;
+              setRecipientId(targetUserId);
+            }
+          }
+        } catch {}
+      }
+    }
+
     const currentUserId = user?.id || CURRENT_USER.id;
     const currentUserName = user?.displayName || CURRENT_USER.name;
     const currentUserAvatar = user?.avatarUrl || CURRENT_USER.avatar;
+
+    console.log('[handleStartCall] Calling targetUserId:', targetUserId, 'from:', currentUserId);
 
     if (targetUserId) {
       socketService.initiateCall({
@@ -855,7 +889,7 @@ export default function ConversationScreen() {
         avatar: chatInfo.avatarUrl,
         type: callType,
         isIncoming: 'false',
-        toUserId: targetUserId,
+        toUserId: targetUserId || '',
         roomName,
       },
     });

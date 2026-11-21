@@ -21,6 +21,7 @@ export function setupSocketIO(io: SocketIOServer) {
       if (!data?.userId) return;
       currentUserId = data.userId;
       socket.join(`user:${currentUserId}`);
+      console.log(`[Socket] User ${currentUserId} joined room user:${currentUserId} (socket: ${socket.id})`);
 
       if (!userSockets.has(currentUserId)) {
         userSockets.set(currentUserId, new Set());
@@ -80,6 +81,7 @@ export function setupSocketIO(io: SocketIOServer) {
       roomName: string;
       sdpOffer?: any;
     }) => {
+      console.log(`[Socket] Call initiated from ${payload.caller?.id} (${payload.caller?.displayName}) to target user ${payload.toUserId} (${payload.callType})`);
       io.to(`user:${payload.toUserId}`).emit('call:incoming', {
         caller: payload.caller,
         callType: payload.callType,
@@ -93,6 +95,7 @@ export function setupSocketIO(io: SocketIOServer) {
       roomName: string;
       sdpAnswer?: any;
     }) => {
+      console.log(`[Socket] Call accepted for room ${payload.roomName} to ${payload.toUserId}`);
       io.to(`user:${payload.toUserId}`).emit('call:accepted', {
         roomName: payload.roomName,
         sdpAnswer: payload.sdpAnswer,
@@ -104,6 +107,7 @@ export function setupSocketIO(io: SocketIOServer) {
       roomName: string;
       reason?: string;
     }) => {
+      console.log(`[Socket] Call rejected for room ${payload.roomName} to ${payload.toUserId}`);
       io.to(`user:${payload.toUserId}`).emit('call:rejected', {
         roomName: payload.roomName,
         reason: payload.reason || 'declined',
@@ -125,6 +129,7 @@ export function setupSocketIO(io: SocketIOServer) {
       toUserId: string;
       roomName: string;
     }) => {
+      console.log(`[Socket] Call ended for room ${payload.roomName} to ${payload.toUserId}`);
       io.to(`user:${payload.toUserId}`).emit('call:ended', {
         roomName: payload.roomName,
       });
