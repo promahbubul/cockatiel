@@ -101,9 +101,9 @@ export default function RegisterScreen() {
 
           {/* Title Section */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Create Account ✨</Text>
+            <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
-              Sign up with your email to start messaging and calling your friends.
+              Sign up with your email to start messaging and calling your contacts.
             </Text>
           </View>
 

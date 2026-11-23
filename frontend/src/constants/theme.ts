@@ -1,49 +1,51 @@
 export const COLORS = {
   white: '#FFFFFF',
-  
-  // Cockatiel Signature Palette (Extracted from Lutino Cockatiel Bird)
-  primary: '#FF6B35',          // Vibrant Cheek Coral
-  primaryDark: '#E85924',      // Deep Tangerine
-  primaryLight: '#FFF2EB',     // Feather Blush Glow
-  accentGold: '#FBBF24',       // Crest Canary Gold
-  accentGoldLight: '#FEF3C7',  // Soft Sunflower Tint
-  
-  // Feather Surfaces & Backgrounds
-  background: '#FAF9F6',       // Warm Ivory / Feather White
-  surface: '#F4F2EC',          // Warm Sand Surface
-  card: '#FFFFFF',             // Pure Feather Card
-  inputBackground: '#F0EEE8',  // Soft Feather Input
-  border: '#E8E5DD',           // Warm Linen Border
-  divider: '#F1EFEA',          // Subtle Separator
-  
-  // Ink & Typography
-  text: '#1C1917',             // Deep Warm Charcoal
-  textSecondary: '#78716C',    // Warm Stone Taupe
-  textMuted: '#A8A29E',        // Muted Feather Gray
+
+  // Core Brand Accent (Human-crafted, polished warm terracotta)
+  primary: '#EA580C',
+  primaryDark: '#C2410C',
+  primaryLight: '#FFF7ED',
+  accentGold: '#D97706',
+  accentGoldLight: '#FEF3C7',
+
+  // Clean Neutral Surfaces (Standard modern iOS / Telegram architecture)
+  background: '#FFFFFF',
+  surface: '#F8FAFC',
+  surfaceSubtle: '#F1F5F9',
+  card: '#FFFFFF',
+  inputBackground: '#F8FAFC',
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  divider: '#F1F5F9',
+
+  // Crisp High-Contrast Typography
+  text: '#0F172A',
+  textSecondary: '#64748B',
+  textMuted: '#94A3B8',
   textWhite: '#FFFFFF',
 
   // Status & Presence
-  online: '#10B981',           // Emerald Leaf
-  offline: '#D6D3D1',          // Soft Gray
+  online: '#10B981',
+  offline: '#CBD5E1',
   missedCall: '#EF4444',
   incomingCall: '#10B981',
-  outgoingCall: '#FF6B35',     // Cockatiel Coral
-  
-  // Chat Bubbles (Distinctive Feather Architecture)
-  incomingBubble: '#FFFFFF',
-  incomingBubbleBorder: '#E8E5DD',
-  incomingBubbleText: '#1C1917',
-  outgoingBubble: '#FF6B35',   // Sunset Coral
+  outgoingCall: '#EA580C',
+
+  // Chat Bubbles (Crisp Telegram / iMessage styling)
+  incomingBubble: '#F1F5F9',
+  incomingBubbleBorder: '#E2E8F0',
+  incomingBubbleText: '#0F172A',
+  outgoingBubble: '#EA580C',
   outgoingBubbleText: '#FFFFFF',
-  
+
   // Badges & Floating Elements
-  unreadBadge: '#FF6B35',
+  unreadBadge: '#EA580C',
   unreadBadgeText: '#FFFFFF',
   reactionBg: '#FFFFFF',
-  reactionBorder: '#E8E5DD',
+  reactionBorder: '#E2E8F0',
 
-  // Luxury Call Screen
-  callBackground: '#181615',   // Deep Velvet Espresso
+  // Call Screen
+  callBackground: '#0F172A',
 };
 
 export const FONTS = {

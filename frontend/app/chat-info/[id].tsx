@@ -103,7 +103,7 @@ export default function ChatInfoScreen() {
     : otherUser?.avatarUrl || chat?.avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400';
   const displaySubtitle = chat?.isGroup
     ? `${chat.participants?.length || 0} members`
-    : otherUser?.email || otherUser?.about || 'Available on Cockatiel 🦜';
+    : otherUser?.email || otherUser?.about || 'Available';
 
   const handleStartCall = (callType: 'audio' | 'video') => {
     const roomName = `call_${Date.now()}`;

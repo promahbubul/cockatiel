@@ -58,8 +58,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   storyRing: {
-    borderWidth: 2.5,
-    borderColor: COLORS.accentGold,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
   },
   image: {
     resizeMode: 'cover',

@@ -649,23 +649,22 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   storyRingActive: {
-    borderWidth: 2.5,
-    borderColor: '#F97316',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
   },
   storyRingSeen: {
     borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderColor: COLORS.border,
   },
   storyRingInactive: {
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderStyle: 'dashed',
+    borderColor: COLORS.border,
   },
   storyAvatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: COLORS.surfaceSubtle,
   },
   uploadingOverlay: {
     ...StyleSheet.absoluteFill,

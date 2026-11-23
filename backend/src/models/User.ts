@@ -39,7 +39,7 @@ const UserSchema = new Schema<IUser>(
     password: { type: String, select: false },
     displayName: { type: String, required: true, trim: true },
     avatarUrl: { type: String, default: null },
-    about: { type: String, default: 'Chirping happily on Cockatiel 🦜' },
+    about: { type: String, default: 'Available' },
     isVerified: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
     lastSeen: { type: Date, default: Date.now },

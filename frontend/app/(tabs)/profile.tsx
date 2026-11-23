@@ -45,7 +45,7 @@ export default function ProfileScreen() {
   const displayName = user?.displayName || CURRENT_USER.name;
   const userEmail = user?.email || CURRENT_USER.email;
   const avatarUrl = user?.avatarUrl || CURRENT_USER.avatar;
-  const aboutText = user?.about || CURRENT_USER.about || 'Chirping happily on Cockatiel 🦜';
+  const aboutText = user?.about || CURRENT_USER.about || 'Available';
 
   const handleLogout = async () => {
     await logout();
@@ -288,12 +288,12 @@ export default function ProfileScreen() {
             />
 
             {/* About / Bio Input */}
-            <Text style={styles.inputLabel}>ABOUT / BIO</Text>
+            <Text style={styles.inputLabel}>ABOUT / STATUS</Text>
             <TextInput
               style={[styles.textInput, styles.textArea]}
               value={editAbout}
               onChangeText={setEditAbout}
-              placeholder="Write a little about yourself or flock status..."
+              placeholder="Write a status or short bio..."
               placeholderTextColor={COLORS.textSecondary}
               multiline
               numberOfLines={3}

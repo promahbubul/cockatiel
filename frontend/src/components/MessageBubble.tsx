@@ -257,25 +257,14 @@ const styles = StyleSheet.create({
   },
   // Feather-arch incoming bubble: soft warm cream with delicate outline
   incomingBubble: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.incomingBubble,
     borderWidth: 1,
-    borderColor: '#E8E5DD',
-    borderTopLeftRadius: 5,
-    shadowColor: '#1C1917',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    borderColor: COLORS.incomingBubbleBorder,
+    borderTopLeftRadius: 4,
   },
-  // Feather-arch outgoing bubble: rich cockatiel sunset coral
   outgoingBubble: {
-    backgroundColor: COLORS.primary,
-    borderTopRightRadius: 5,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.22,
-    shadowRadius: 5,
-    elevation: 2,
+    backgroundColor: COLORS.outgoingBubble,
+    borderTopRightRadius: 4,
   },
   mediaBubble: {
     paddingHorizontal: 6,

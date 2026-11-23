@@ -52,11 +52,11 @@ export default function LoginScreen() {
   };
 
   const DEMO_ACCOUNTS = [
-    { name: 'Alex Johnson', email: 'alex@cockatiel.app', badge: '👤 Main' },
-    { name: 'Emma Watson', email: 'emma@cockatiel.app', badge: '👩 Active' },
-    { name: 'Oliver Smith', email: 'oliver@cockatiel.app', badge: '👨 Active' },
-    { name: 'Lucas Chen', email: 'lucas@cockatiel.app', badge: '👦 Producer' },
-    { name: 'Mia Wong', email: 'mia@cockatiel.app', badge: '👧 Dev' },
+    { name: 'Alex Johnson', email: 'alex@cockatiel.app', initials: 'AJ' },
+    { name: 'Emma Watson', email: 'emma@cockatiel.app', initials: 'EW' },
+    { name: 'Oliver Smith', email: 'oliver@cockatiel.app', initials: 'OS' },
+    { name: 'Lucas Chen', email: 'lucas@cockatiel.app', initials: 'LC' },
+    { name: 'Mia Wong', email: 'mia@cockatiel.app', initials: 'MW' },
   ];
 
   const handleQuickLogin = async (demoEmail: string) => {
@@ -73,10 +73,6 @@ export default function LoginScreen() {
     } else {
       setErrorMessage(result.error || 'Failed to login with demo account');
     }
-  };
-
-  const handleFillDemo = () => {
-    handleQuickLogin('alex@cockatiel.app');
   };
 
   const canSubmit = isValidEmail(email) && password.length >= 1 && !loading;
@@ -99,15 +95,15 @@ export default function LoginScreen() {
               onPress={() => router.back()}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <ChevronLeft size={28} color={COLORS.text} />
+              <ChevronLeft size={24} color={COLORS.text} />
             </TouchableOpacity>
           </View>
 
           {/* Title Section */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Welcome back! 👋</Text>
+            <Text style={styles.title}>Sign In</Text>
             <Text style={styles.subtitle}>
-              Sign in with your email and password to continue chatting.
+              Enter your email and password to access your conversations.
             </Text>
           </View>
 
@@ -117,11 +113,11 @@ export default function LoginScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email Address</Text>
               <View style={[styles.inputWrapper, errorMessage ? styles.inputWrapperError : null]}>
-                <Mail size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                <Mail size={18} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="name@example.com"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={COLORS.textMuted}
                   value={email}
                   onChangeText={(val) => {
                     setEmail(val);
@@ -146,11 +142,11 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
               <View style={[styles.inputWrapper, errorMessage ? styles.inputWrapperError : null]}>
-                <Lock size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                <Lock size={18} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Enter your password"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={COLORS.textMuted}
                   value={password}
                   onChangeText={(val) => {
                     setPassword(val);
@@ -166,9 +162,9 @@ export default function LoginScreen() {
                   activeOpacity={0.7}
                 >
                   {showPassword ? (
-                    <EyeOff size={20} color={COLORS.textSecondary} />
+                    <EyeOff size={18} color={COLORS.textSecondary} />
                   ) : (
-                    <Eye size={20} color={COLORS.textSecondary} />
+                    <Eye size={18} color={COLORS.textSecondary} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -189,18 +185,18 @@ export default function LoginScreen() {
               activeOpacity={0.8}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <Text style={styles.submitButtonText}>Log In</Text>
-                  <ArrowRight size={20} color="#FFFFFF" />
+                  <Text style={styles.submitButtonText}>Sign In</Text>
+                  <ArrowRight size={18} color="#FFFFFF" />
                 </>
               )}
             </TouchableOpacity>
 
-            {/* Quick Demo One-Click Login Accounts */}
+            {/* Quick Demo Accounts (Minimalist human-designed switcher) */}
             <View style={styles.demoSection}>
-              <Text style={styles.demoSectionTitle}>⚡ One-Click Demo Login (Select Account):</Text>
+              <Text style={styles.demoSectionTitle}>TEST ACCOUNTS</Text>
               <View style={styles.demoGrid}>
                 {DEMO_ACCOUNTS.map((acc) => (
                   <TouchableOpacity
@@ -213,7 +209,9 @@ export default function LoginScreen() {
                     disabled={loading}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.demoAccountBadge}>{acc.badge}</Text>
+                    <View style={styles.initialsCircle}>
+                      <Text style={styles.initialsText}>{acc.initials}</Text>
+                    </View>
                     <View style={styles.demoAccountInfo}>
                       <Text style={styles.demoAccountName}>{acc.name}</Text>
                       <Text style={styles.demoAccountEmail}>{acc.email}</Text>
@@ -251,36 +249,37 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
   titleSection: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 8,
+    letterSpacing: -0.4,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.textSecondary,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   form: {
-    gap: 18,
+    gap: 16,
   },
   inputGroup: {
     gap: 6,
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.text,
   },
@@ -298,9 +297,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    height: 54,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 50,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -309,7 +308,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   textInput: {
     flex: 1,
@@ -320,7 +319,9 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   errorContainer: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
     padding: 12,
     borderRadius: 10,
   },
@@ -330,93 +331,81 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   submitButton: {
-    backgroundColor: '#D1D5DB',
-    height: 54,
-    borderRadius: 14,
+    backgroundColor: '#CBD5E1',
+    height: 50,
+    borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    marginTop: 8,
+    marginTop: 6,
   },
   submitButtonActive: {
     backgroundColor: COLORS.primary,
   },
   submitButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
   },
   demoSection: {
     marginTop: 16,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 14,
-    padding: 14,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.border,
   },
   demoSectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#4B5563',
+    color: COLORS.textSecondary,
     marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   demoGrid: {
-    gap: 8,
+    gap: 6,
   },
   demoAccountChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    backgroundColor: COLORS.card,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.border,
   },
   demoAccountChipActive: {
     borderColor: COLORS.primary,
-    backgroundColor: 'rgba(249, 115, 22, 0.06)',
+    backgroundColor: COLORS.primaryLight,
   },
-  demoAccountBadge: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
+  initialsCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.surfaceSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 10,
+  },
+  initialsText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
   },
   demoAccountInfo: {
     flex: 1,
   },
   demoAccountName: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     color: COLORS.text,
   },
   demoAccountEmail: {
     fontSize: 11,
     color: COLORS.textSecondary,
     marginTop: 1,
-  },
-  demoBox: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    marginTop: 6,
-  },
-  demoText: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '600',
-  },
-  demoEmail: {
-    fontSize: 13,
-    color: '#B45309',
-    fontWeight: '700',
-    marginTop: 2,
   },
   footer: {
     flexDirection: 'row',
@@ -432,7 +421,7 @@ const styles = StyleSheet.create({
   },
   signUpLink: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: COLORS.primary,
   },
 });

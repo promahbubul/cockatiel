@@ -5,7 +5,7 @@ export const CURRENT_USER: User = {
   name: 'Alex Johnson',
   email: 'alex@cockatiel.app',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-  about: 'Living life one bubble at a time 🫧 | Exploring the world 🌍',
+  about: 'Available',
   isOnline: true,
 };
 

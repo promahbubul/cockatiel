@@ -34,7 +34,7 @@ export async function seedDatabase() {
       password: defaultPassword,
       displayName: 'Alex Johnson',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
-      about: 'Living life one bubble at a time 🫧 | Exploring the world 🌍',
+      about: 'Exploring product design & technology',
       isVerified: true,
       isOnline: true,
     },
@@ -43,7 +43,7 @@ export async function seedDatabase() {
       password: defaultPassword,
       displayName: 'Emma Watson',
       avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
-      about: 'Hey there! I am using Cockatiel 🦜',
+      about: 'Available',
       isVerified: true,
       isOnline: true,
     },
@@ -104,7 +104,7 @@ export async function seedDatabase() {
 
   const groupChat = await Chat.create({
     isGroup: true,
-    groupName: 'Design Team 🎨',
+    groupName: 'Design Team',
     groupAvatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&auto=format&fit=crop&q=80',
     participants: [me._id, emma._id, mia._id, oliver._id],
     admins: [me._id],

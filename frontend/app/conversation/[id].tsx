@@ -48,7 +48,7 @@ import { socketService } from '../../src/services/socket';
 import { chatCache } from '../../src/services/chatCache';
 import { useAuth } from '../../src/context/AuthContext';
 
-const REACTION_EMOJIS = ['❤️', '🦜', '🔥', '👍', '😂', '😮'];
+const REACTION_EMOJIS = ['👍', '❤️', '🔥', '😂', '😮', '😢'];
 
 export default function ConversationScreen() {
   const router = useRouter();
