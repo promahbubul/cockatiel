@@ -22,6 +22,7 @@ export default function VideoCallScreen() {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+  const [callWarning, setCallWarning] = useState<string | null>(null);
   const secondsRef = useRef(0);
   const hasEndedRef = useRef(false);
 
@@ -47,7 +48,8 @@ export default function VideoCallScreen() {
         currentRoomName,
         'agora-local-video',
         'agora-remote-video',
-        () => setHasRemoteVideo(true)
+        () => setHasRemoteVideo(true),
+        (err) => setCallWarning(err)
       );
     }, 150);
 
@@ -141,9 +143,16 @@ export default function VideoCallScreen() {
 
       {/* Floating Header */}
       <SafeAreaView style={styles.topOverlay} edges={['top']}>
-        <View style={styles.callerInfoBadge}>
-          <Text style={styles.callerName}>{callerName}</Text>
-          <Text style={styles.durationText}>{formatTime(seconds)}</Text>
+        <View style={{ flex: 1, marginRight: 16 }}>
+          <View style={styles.callerInfoBadge}>
+            <Text style={styles.callerName}>{callerName}</Text>
+            <Text style={styles.durationText}>{formatTime(seconds)}</Text>
+          </View>
+          {Boolean(callWarning) && (
+            <View style={styles.warningBox}>
+              <Text style={styles.warningText}>⚠️ {callWarning}</Text>
+            </View>
+          )}
         </View>
 
         {/* Floating Self Video Picture-in-Picture */}
@@ -230,6 +239,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    alignSelf: 'flex-start',
+  },
+  warningBox: {
+    marginTop: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  warningText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   callerName: {
     color: '#FFFFFF',

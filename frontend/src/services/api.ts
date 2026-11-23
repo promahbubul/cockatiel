@@ -282,4 +282,44 @@ export const api = {
         body: JSON.stringify(payload),
       }),
   },
+
+  // 24-Hour Stories
+  stories: {
+    getActive: () =>
+      request<{
+        success: boolean;
+        myStories: any[];
+        userStoryGroups: Array<{
+          userId: string;
+          displayName: string;
+          avatarUrl: string;
+          isOnline: boolean;
+          isMe: boolean;
+          hasUnseen: boolean;
+          stories: Array<{
+            id: string;
+            mediaUrl: string;
+            mediaType: 'image' | 'video';
+            caption?: string;
+            viewersCount: number;
+            isViewed: boolean;
+            createdAt: string;
+            expiresAt: string;
+          }>;
+        }>;
+      }>('/stories'),
+    create: (payload: { mediaUrl: string; mediaType?: 'image' | 'video'; caption?: string }) =>
+      request<{ success: boolean; story: any }>('/stories', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    view: (storyId: string) =>
+      request<{ success: boolean; viewersCount: number }>(`/stories/${storyId}/view`, {
+        method: 'POST',
+      }),
+    delete: (storyId: string) =>
+      request<{ success: boolean; message: string }>(`/stories/${storyId}`, {
+        method: 'DELETE',
+      }),
+  },
 };

@@ -20,6 +20,7 @@ export default function AudioCallScreen() {
   const [seconds, setSeconds] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
+  const [callWarning, setCallWarning] = useState<string | null>(null);
   const secondsRef = useRef(0);
   const hasEndedRef = useRef(false);
 
@@ -39,7 +40,7 @@ export default function AudioCallScreen() {
 
   // Join Agora Audio Channel on mount
   useEffect(() => {
-    agoraService.initAudioCall(currentRoomName);
+    agoraService.initAudioCall(currentRoomName, undefined, (err) => setCallWarning(err));
 
     const timer = setInterval(() => {
       setSeconds((prev) => {
@@ -116,6 +117,11 @@ export default function AudioCallScreen() {
       <View style={styles.topSection}>
         <Text style={styles.callerName}>{callerName}</Text>
         <Text style={styles.durationText}>{formatTime(seconds)}</Text>
+        {Boolean(callWarning) && (
+          <View style={styles.warningBox}>
+            <Text style={styles.warningText}>⚠️ {callWarning}</Text>
+          </View>
+        )}
       </View>
 
       {/* Center Avatar */}
@@ -232,5 +238,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 6,
+  },
+  warningBox: {
+    marginTop: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  warningText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

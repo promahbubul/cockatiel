@@ -11,6 +11,7 @@ import { userRoutes } from './routes/user.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { messageRoutes } from './routes/message.routes.js';
 import { callRoutes } from './routes/call.routes.js';
+import { storyRoutes } from './routes/story.routes.js';
 
 dotenv.config();
 
@@ -54,6 +55,7 @@ async function main() {
     await server.register(chatRoutes, { prefix: '/api/chats' });
     await server.register(messageRoutes, { prefix: '/api/messages' });
     await server.register(callRoutes, { prefix: '/api/calls' });
+    await server.register(storyRoutes, { prefix: '/api/stories' });
 
     // Initialize Socket.IO with raw Node HTTP server from Fastify
     const io = new SocketIOServer(server.server, {

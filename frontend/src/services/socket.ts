@@ -195,6 +195,10 @@ class SocketService {
     console.log('[SocketService] Emitting call:end to:', payload.toUserId);
     this.socket?.emit('call:end', payload);
   }
+
+  on(event: string, callback: (data: any) => void) {
+    return this.registerListener(event, callback);
+  }
 }
 
 export const socketService = new SocketService();

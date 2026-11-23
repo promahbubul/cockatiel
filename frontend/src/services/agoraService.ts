@@ -9,6 +9,21 @@ if (Platform.OS === 'web') {
     const pkg = require('agora-rtc-sdk-ng');
     AgoraRTC = pkg.default || pkg;
     AgoraRTC?.setLogLevel?.(2);
+
+    if (AgoraRTC) {
+      AgoraRTC.onAudioAutoplayFailed = () => {
+        console.warn('[AgoraService] Audio autoplay blocked by browser policy! Unlocking on user interaction...');
+        if (typeof window !== 'undefined') {
+          const unlockAudio = () => {
+            AgoraRTC?.resumeAudio?.();
+            window.removeEventListener('click', unlockAudio);
+            window.removeEventListener('touchstart', unlockAudio);
+          };
+          window.addEventListener('click', unlockAudio, { once: true });
+          window.addEventListener('touchstart', unlockAudio, { once: true });
+        }
+      };
+    }
   } catch (err) {
     console.warn('[AgoraService] Could not import agora-rtc-sdk-ng:', err);
   }
@@ -27,10 +42,56 @@ export class AgoraService {
     return clean.slice(0, 64);
   }
 
-  async initAudioCall(channelName: string, onRemoteUserJoined?: () => void): Promise<boolean> {
+  checkMediaSupport(): { supported: boolean; reason?: string } {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!window.isSecureContext && !isLocal) {
+        return {
+          supported: false,
+          reason: 'Browser blocks camera & microphone on HTTP IP addresses. Please test on http://localhost:8081 or enable HTTPS.',
+        };
+      }
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        return {
+          supported: false,
+          reason: 'Camera & microphone permissions not available in this browser context.',
+        };
+      }
+    }
+    return { supported: true };
+  }
+
+  private playVideoInContainer(track: any, containerId: string) {
+    if (typeof document === 'undefined' || !track) return;
+    const el = document.getElementById(containerId);
+    if (el) {
+      track.play(el);
+    } else {
+      setTimeout(() => {
+        const retryEl = document.getElementById(containerId);
+        if (retryEl) track.play(retryEl);
+      }, 250);
+      setTimeout(() => {
+        const retryEl = document.getElementById(containerId);
+        if (retryEl) track.play(retryEl);
+      }, 750);
+    }
+  }
+
+  async initAudioCall(
+    channelName: string,
+    onRemoteUserJoined?: () => void,
+    onError?: (msg: string) => void
+  ): Promise<boolean> {
     if (!AgoraRTC) {
-      console.log('[AgoraService] AgoraRTC not available (native or web not loaded)');
+      console.log('[AgoraService] AgoraRTC not available');
       return false;
+    }
+
+    const support = this.checkMediaSupport();
+    if (!support.supported) {
+      console.warn('[AgoraService]', support.reason);
+      onError?.(support.reason!);
     }
 
     try {
@@ -76,17 +137,23 @@ export class AgoraService {
       this.isJoined = true;
 
       // Create and publish local mic track
-      this.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-        AEC: true,
-        ANS: true,
-        AGC: true,
-      });
+      try {
+        this.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+          AEC: true,
+          ANS: true,
+          AGC: true,
+        });
+        await this.client.publish([this.localAudioTrack]);
+        console.log('[AgoraService] Audio call joined and published on channel:', channel);
+      } catch (trackErr: any) {
+        console.error('[AgoraService] Failed to create mic track:', trackErr);
+        onError?.(trackErr.message || 'Microphone access denied');
+      }
 
-      await this.client.publish([this.localAudioTrack]);
-      console.log('[AgoraService] Audio call joined and published on channel:', channel, 'uid:', numericUid);
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('[AgoraService] initAudioCall error:', err);
+      onError?.(err.message || 'Call connection failed');
       return false;
     }
   }
@@ -95,11 +162,18 @@ export class AgoraService {
     channelName: string,
     localContainerId: string,
     remoteContainerId: string,
-    onRemoteUserJoined?: () => void
+    onRemoteUserJoined?: () => void,
+    onError?: (msg: string) => void
   ): Promise<boolean> {
     if (!AgoraRTC) {
       console.log('[AgoraService] AgoraRTC not available');
       return false;
+    }
+
+    const support = this.checkMediaSupport();
+    if (!support.supported) {
+      console.warn('[AgoraService]', support.reason);
+      onError?.(support.reason!);
     }
 
     try {
@@ -120,12 +194,7 @@ export class AgoraService {
           }
           if (mediaType === 'video') {
             this.remoteVideoTrack = user.videoTrack;
-            if (typeof document !== 'undefined') {
-              const remoteEl = document.getElementById(remoteContainerId);
-              if (remoteEl) {
-                user.videoTrack?.play(remoteEl);
-              }
-            }
+            this.playVideoInContainer(user.videoTrack, remoteContainerId);
             onRemoteUserJoined?.();
           }
         } catch (subErr) {
@@ -152,26 +221,28 @@ export class AgoraService {
       await this.client.join(AGORA_APP_ID, channel, token, numericUid);
       this.isJoined = true;
 
-      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
-        { AEC: true, ANS: true, AGC: true },
-        { encoderConfig: '720p_1' }
-      );
+      try {
+        const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
+          { AEC: true, ANS: true, AGC: true },
+          { encoderConfig: '720p_1' }
+        );
 
-      this.localAudioTrack = audioTrack;
-      this.localVideoTrack = videoTrack;
+        this.localAudioTrack = audioTrack;
+        this.localVideoTrack = videoTrack;
 
-      if (typeof document !== 'undefined') {
-        const localEl = document.getElementById(localContainerId);
-        if (localEl) {
-          this.localVideoTrack.play(localEl);
-        }
+        this.playVideoInContainer(this.localVideoTrack, localContainerId);
+
+        await this.client.publish([this.localAudioTrack, this.localVideoTrack]);
+        console.log('[AgoraService] Video call joined and published on channel:', channel);
+      } catch (trackErr: any) {
+        console.error('[AgoraService] Failed to create camera/mic tracks:', trackErr);
+        onError?.(trackErr.message || 'Camera or Microphone access denied');
       }
 
-      await this.client.publish([this.localAudioTrack, this.localVideoTrack]);
-      console.log('[AgoraService] Video call joined and published on channel:', channel, 'uid:', numericUid);
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('[AgoraService] initVideoCall error:', err);
+      onError?.(err.message || 'Video call connection failed');
       return false;
     }
   }

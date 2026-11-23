@@ -9,6 +9,8 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -19,11 +21,14 @@ import {
   Search,
   Bell,
   Image as ImageIcon,
-  ChevronRight,
-  ShieldAlert,
   UserX,
   Users,
   LogOut,
+  UserPlus,
+  UserMinus,
+  Check,
+  X,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { api } from '../../src/services/api';
@@ -43,40 +48,52 @@ export default function ChatInfoScreen() {
   const [sharedImages, setSharedImages] = useState<string[]>([]);
   const [otherUser, setOtherUser] = useState<any>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    async function loadData() {
-      try {
-        if (chatId.length === 24) {
-          const [chatRes, msgRes] = await Promise.all([
-            api.chats.getById(chatId).catch(() => null),
-            api.messages.getMessages(chatId, 100).catch(() => null),
-          ]);
+  // Group Member Management State
+  const [addMemberModalVisible, setAddMemberModalVisible] = useState(false);
+  const [availableContacts, setAvailableContacts] = useState<any[]>([]);
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [isSubmittingMembers, setIsSubmittingMembers] = useState(false);
 
-          if (mounted && chatRes?.success && chatRes.chat) {
-            setChat(chatRes.chat);
-            const other = chatRes.chat.participants?.find((p: any) => p.id !== user?.id);
-            setOtherUser(other || null);
-          }
+  const fetchChatDetails = async () => {
+    if (chatId.length !== 24) return;
+    try {
+      const [chatRes, msgRes] = await Promise.all([
+        api.chats.getById(chatId).catch(() => null),
+        api.messages.getMessages(chatId, 100).catch(() => null),
+      ]);
 
-          if (mounted && msgRes?.success && msgRes.messages) {
-            const images = msgRes.messages
-              .filter((m: any) => m.mediaUrl && m.mediaType !== 'AUDIO')
-              .map((m: any) => m.mediaUrl);
-            setSharedImages(images);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading chat info:', err);
-      } finally {
-        if (mounted) setIsLoading(false);
+      if (chatRes?.success && chatRes.chat) {
+        setChat(chatRes.chat);
+        const other = chatRes.chat.participants?.find((p: any) => p.id !== user?.id);
+        setOtherUser(other || null);
       }
+
+      if (msgRes?.success && msgRes.messages) {
+        const images = msgRes.messages
+          .filter((m: any) => m.mediaUrl && m.mediaType !== 'AUDIO')
+          .map((m: any) => m.mediaUrl);
+        setSharedImages(images);
+      }
+    } catch (err) {
+      console.error('Error loading chat info:', err);
+    } finally {
+      setIsLoading(false);
     }
-    loadData();
+  };
+
+  useEffect(() => {
+    fetchChatDetails();
+
+    const unsubMemberAdded = socketService.on('chat:memberAdded', () => fetchChatDetails());
+    const unsubMemberRemoved = socketService.on('chat:memberRemoved', () => fetchChatDetails());
+
     return () => {
-      mounted = false;
+      unsubMemberAdded?.();
+      unsubMemberRemoved?.();
     };
   }, [chatId, user?.id]);
+
+  const isAdmin = Boolean(chat?.isGroup && chat?.admins?.includes(user?.id));
 
   const displayName = chat?.isGroup
     ? chat.title
@@ -116,6 +133,101 @@ export default function ChatInfoScreen() {
         roomName,
       },
     });
+  };
+
+  // Open Add Members Modal & Load Contacts
+  const handleOpenAddMemberModal = async () => {
+    try {
+      const res = await api.users.getContacts();
+      if (res.success && res.contacts) {
+        const existingIds = new Set((chat?.participants || []).map((p: any) => p.id));
+        const eligible = res.contacts.filter((c: any) => !existingIds.has(c.id));
+        setAvailableContacts(eligible);
+        setSelectedContactIds(new Set());
+        setAddMemberModalVisible(true);
+      }
+    } catch {
+      Alert.alert('Error', 'Could not load contacts');
+    }
+  };
+
+  const toggleSelectContact = (contactId: string) => {
+    setSelectedContactIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(contactId)) {
+        next.delete(contactId);
+      } else {
+        next.add(contactId);
+      }
+      return next;
+    });
+  };
+
+  const handleAddMembersSubmit = async () => {
+    if (selectedContactIds.size === 0) return;
+    setIsSubmittingMembers(true);
+    try {
+      const res = await api.chats.addMembers(chatId, Array.from(selectedContactIds));
+      if (res.success) {
+        setAddMemberModalVisible(false);
+        await fetchChatDetails();
+        Alert.alert('Success', 'Member(s) added to group');
+      }
+    } catch (err: any) {
+      Alert.alert('Failed to add members', err.message || 'Something went wrong');
+    } finally {
+      setIsSubmittingMembers(false);
+    }
+  };
+
+  // Remove Member (Admin action)
+  const handleRemoveMember = (member: any) => {
+    Alert.alert(
+      'Remove Member',
+      `Are you sure you want to remove ${member.displayName} from this group?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await api.chats.removeMember(chatId, member.id);
+              if (res.success) {
+                await fetchChatDetails();
+              }
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to remove member');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Leave Group
+  const handleLeaveGroup = () => {
+    Alert.alert(
+      'Leave Group',
+      `Are you sure you want to leave ${chat?.title || 'this group'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            if (!user?.id) return;
+            try {
+              await api.chats.removeMember(chatId, user.id);
+              Alert.alert('Left Group', 'You have left the group.');
+              router.replace('/(tabs)');
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to leave group');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleBlockUser = () => {
@@ -158,7 +270,7 @@ export default function ChatInfoScreen() {
           </View>
         ) : (
           <>
-            {/* User Profile Card */}
+            {/* User / Group Profile Card */}
             <View style={styles.userSection}>
               <Avatar
                 uri={displayAvatar}
@@ -208,6 +320,65 @@ export default function ChatInfoScreen() {
               </View>
             )}
 
+            {/* Group Members Section (if group chat) */}
+            {chat?.isGroup && chat.participants && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>
+                    MEMBERS ({chat.participants.length})
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.addMemberBtn}
+                    onPress={handleOpenAddMemberModal}
+                    activeOpacity={0.7}
+                  >
+                    <UserPlus size={16} color={COLORS.primary} />
+                    <Text style={styles.addMemberBtnText}>Add Member</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.card}>
+                  {chat.participants.map((member: any) => {
+                    const isMemberAdmin = (chat.admins || []).includes(member.id);
+                    const isSelf = member.id === user?.id;
+
+                    return (
+                      <View key={member.id} style={styles.memberRow}>
+                        <Avatar uri={member.avatarUrl} size={40} isOnline={member.isOnline} />
+                        <View style={styles.memberInfo}>
+                          <Text style={styles.memberName}>{member.displayName}</Text>
+                          <Text style={styles.memberEmail}>{member.email}</Text>
+                        </View>
+
+                        <View style={styles.memberBadges}>
+                          {isMemberAdmin && (
+                            <View style={styles.adminBadge}>
+                              <ShieldCheck size={12} color="#D97706" style={{ marginRight: 3 }} />
+                              <Text style={styles.adminBadgeText}>Admin</Text>
+                            </View>
+                          )}
+                          {isSelf && (
+                            <View style={styles.youBadge}>
+                              <Text style={styles.youBadgeText}>You</Text>
+                            </View>
+                          )}
+                          {isAdmin && !isSelf && (
+                            <TouchableOpacity
+                              onPress={() => handleRemoveMember(member)}
+                              style={styles.removeMemberBtn}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                              <UserMinus size={18} color="#EF4444" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
             {/* Shared Media Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
@@ -237,31 +408,6 @@ export default function ChatInfoScreen() {
               )}
             </View>
 
-            {/* Group Members Section (if group chat) */}
-            {chat?.isGroup && chat.participants && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                  MEMBERS ({chat.participants.length})
-                </Text>
-                <View style={styles.card}>
-                  {chat.participants.map((member: any) => (
-                    <View key={member.id} style={styles.memberRow}>
-                      <Avatar uri={member.avatarUrl} size={40} isOnline={member.isOnline} />
-                      <View style={styles.memberInfo}>
-                        <Text style={styles.memberName}>{member.displayName}</Text>
-                        <Text style={styles.memberEmail}>{member.email}</Text>
-                      </View>
-                      {member.id === user?.id && (
-                        <View style={styles.youBadge}>
-                          <Text style={styles.youBadgeText}>You</Text>
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
             {/* Options List */}
             <View style={styles.card}>
               <View style={styles.menuRow}>
@@ -280,20 +426,110 @@ export default function ChatInfoScreen() {
 
             {/* Destructive Actions */}
             <View style={[styles.card, styles.dangerCard]}>
-              <TouchableOpacity
-                style={styles.dangerRow}
-                onPress={handleBlockUser}
-                activeOpacity={0.7}
-              >
-                <UserX size={20} color="#EF4444" style={styles.menuIcon} />
-                <Text style={styles.dangerText}>
-                  {chat?.isGroup ? 'Leave Group' : `Block ${displayName}`}
-                </Text>
-              </TouchableOpacity>
+              {chat?.isGroup ? (
+                <TouchableOpacity
+                  style={styles.dangerRow}
+                  onPress={handleLeaveGroup}
+                  activeOpacity={0.7}
+                >
+                  <LogOut size={20} color="#EF4444" style={styles.menuIcon} />
+                  <Text style={styles.dangerText}>Leave Group</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.dangerRow}
+                  onPress={handleBlockUser}
+                  activeOpacity={0.7}
+                >
+                  <UserX size={20} color="#EF4444" style={styles.menuIcon} />
+                  <Text style={styles.dangerText}>Block {displayName}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </>
         )}
       </ScrollView>
+
+      {/* ADD MEMBER MODAL */}
+      <Modal
+        visible={addMemberModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setAddMemberModalVisible(false)}
+      >
+        <SafeAreaView style={styles.addModalContainer}>
+          <View style={styles.addModalContent}>
+            <View style={styles.addModalHeader}>
+              <Text style={styles.addModalTitle}>Add Members</Text>
+              <TouchableOpacity
+                onPress={() => setAddMemberModalVisible(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+
+            {availableContacts.length === 0 ? (
+              <View style={styles.emptyContacts}>
+                <Users size={40} color={COLORS.textSecondary} />
+                <Text style={styles.emptyContactsText}>All contacts are already in this group.</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={availableContacts}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => {
+                  const isSelected = selectedContactIds.has(item.id);
+                  return (
+                    <TouchableOpacity
+                      style={styles.contactItem}
+                      onPress={() => toggleSelectContact(item.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Avatar uri={item.avatarUrl} size={44} isOnline={item.isOnline} />
+                      <View style={styles.contactInfo}>
+                        <Text style={styles.contactName}>{item.displayName}</Text>
+                        <Text style={styles.contactEmail}>{item.email}</Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.checkbox,
+                          isSelected && styles.checkboxSelected,
+                        ]}
+                      >
+                        {isSelected && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+                contentContainerStyle={{ paddingVertical: 10 }}
+              />
+            )}
+
+            {availableContacts.length > 0 && (
+              <View style={styles.addModalFooter}>
+                <TouchableOpacity
+                  style={[
+                    styles.submitAddBtn,
+                    selectedContactIds.size === 0 && styles.submitAddBtnDisabled,
+                  ]}
+                  onPress={handleAddMembersSubmit}
+                  disabled={selectedContactIds.size === 0 || isSubmittingMembers}
+                  activeOpacity={0.8}
+                >
+                  {isSubmittingMembers ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.submitAddBtnText}>
+                      Add ({selectedContactIds.size}) to Group
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -301,7 +537,7 @@ export default function ChatInfoScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background, // Feather Ivory #FAF9F6
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -354,7 +590,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primaryLight, // #FFF2EB
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
@@ -375,7 +611,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
     paddingHorizontal: 4,
   },
   sectionTitle: {
@@ -383,8 +619,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.textSecondary,
     letterSpacing: 0.8,
-    marginBottom: 8,
-    paddingHorizontal: 4,
+  },
+  addMemberBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    gap: 4,
+  },
+  addMemberBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   mediaRow: {
     flexDirection: 'row',
@@ -417,7 +665,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.card,
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -446,6 +694,24 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
+  memberBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  adminBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  adminBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D97706',
+  },
   youBadge: {
     backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 8,
@@ -456,6 +722,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  removeMemberBtn: {
+    padding: 6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 14,
   },
   menuRow: {
     flexDirection: 'row',
@@ -478,6 +749,7 @@ const styles = StyleSheet.create({
   },
   dangerCard: {
     borderColor: '#FEE2E2',
+    marginHorizontal: 16,
   },
   dangerRow: {
     flexDirection: 'row',
@@ -489,5 +761,97 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#EF4444',
+  },
+
+  // Add Member Modal
+  addModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  addModalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  addModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  addModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  emptyContacts: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContactsText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 12,
+    fontWeight: '500',
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  contactInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  contactName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  contactEmail: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  addModalFooter: {
+    paddingTop: 14,
+  },
+  submitAddBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitAddBtnDisabled: {
+    opacity: 0.5,
+  },
+  submitAddBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

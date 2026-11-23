@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
+import { emailService } from '../services/email.service.js';
 import {
   RegisterSchema,
   LoginSchema,
@@ -53,6 +54,7 @@ export async function register(request: FastifyRequest, reply: FastifyReply) {
   }
 
   console.log(`📧 [Registration OTP] Verification code for ${normalizedEmail}: ${code}`);
+  await emailService.sendVerificationEmail(normalizedEmail, code, displayName);
 
   return reply.send({
     success: true,
@@ -196,6 +198,7 @@ export async function forgotPassword(request: FastifyRequest, reply: FastifyRepl
   await user.save();
 
   console.log(`🔑 [Password Reset OTP] Code for ${normalizedEmail}: ${code}`);
+  await emailService.sendPasswordResetEmail(normalizedEmail, code, user.displayName);
 
   return reply.send({
     success: true,
@@ -256,6 +259,7 @@ export async function sendOtp(request: FastifyRequest, reply: FastifyReply) {
   });
 
   console.log(`📧 [Email Verification] Code sent to ${email}: ${code}`);
+  await emailService.sendVerificationEmail(email, code);
 
   return reply.send({
     success: true,
