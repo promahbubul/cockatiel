@@ -28,6 +28,7 @@ export interface IUser extends Document {
     expiresAt: Date;
   };
   contacts: Types.ObjectId[];
+  pushToken?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +59,7 @@ const UserSchema = new Schema<IUser>(
       code: { type: String },
       expiresAt: { type: Date },
     },
+    pushToken: { type: String, default: null },
     contacts: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: true }

@@ -2,9 +2,11 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { Types } from 'mongoose';
 import { Message } from '../models/Message.js';
 import { Chat } from '../models/Chat.js';
+import { User } from '../models/User.js';
 import { SendMessageSchema, ReactMessageSchema } from '../schemas/index.js';
 import { uploadToCloudinary } from '../config/cloudinary.js';
 import { getIO } from '../sockets/index.js';
+import { pushService } from '../services/push.service.js';
 
 export async function getMessages(request: FastifyRequest, reply: FastifyReply) {
   const currentUserId = (request as any).user.userId;
@@ -153,6 +155,44 @@ export async function sendMessage(request: FastifyRequest, reply: FastifyReply) 
       });
     });
   }
+
+  // Asynchronously trigger push notifications to other participants
+  (async () => {
+    try {
+      const otherParticipantIds = chat.participants.filter(
+        (pId) => pId.toString() !== currentUserId
+      );
+      const recipientUsers = await User.find({
+        _id: { $in: otherParticipantIds },
+        pushToken: { $ne: null },
+      }).select('pushToken');
+
+      const tokens = recipientUsers.map((u) => u.pushToken).filter(Boolean) as string[];
+      if (tokens.length > 0) {
+        const senderName = (populated.senderId as any)?.displayName || 'New message';
+        const preview =
+          content ||
+          (mediaType === 'IMAGE'
+            ? 'Sent a photo 📷'
+            : mediaType === 'AUDIO'
+            ? 'Sent a voice note 🎙️'
+            : 'Sent an attachment 📎');
+
+        await pushService.sendPushNotification({
+          to: tokens,
+          title: chat.isGroup ? `${senderName} in ${chat.groupName || 'Group'}` : senderName,
+          body: preview,
+          data: {
+            chatId: chat._id.toString(),
+            messageId: message._id.toString(),
+            type: 'message',
+          },
+        });
+      }
+    } catch (pushErr) {
+      console.warn('[Message] Push notification dispatch error:', pushErr);
+    }
+  })();
 
   return reply.send({
     success: true,

@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { User } from '../models/User.js';
 import { Chat } from '../models/Chat.js';
+import { pushService } from '../services/push.service.js';
 
 let ioInstance: SocketIOServer | null = null;
 
@@ -90,6 +91,31 @@ export function setupSocketIO(io: SocketIOServer) {
         chatId: payload.chatId,
         sdpOffer: payload.sdpOffer,
       });
+
+      // Send background push notification for incoming call
+      (async () => {
+        try {
+          const targetUser = await User.findById(payload.toUserId).select('pushToken');
+          if (targetUser?.pushToken) {
+            await pushService.sendPushNotification({
+              to: targetUser.pushToken,
+              title: `📞 Incoming ${payload.callType} call`,
+              body: `${payload.caller?.displayName || 'Someone'} is calling you on Cockatiel 🦜`,
+              sound: 'default',
+              priority: 'high',
+              channelId: 'calls',
+              data: {
+                type: 'call',
+                callType: payload.callType,
+                roomName: payload.roomName,
+                caller: payload.caller,
+              },
+            });
+          }
+        } catch (err) {
+          console.warn('[Socket] Call push notification error:', err);
+        }
+      })();
     });
 
     socket.on('call:accept', (payload: {

@@ -5,6 +5,7 @@ import { User } from './models/User.js';
 import { Chat } from './models/Chat.js';
 import { Message } from './models/Message.js';
 import { CallLog } from './models/CallLog.js';
+import { Story } from './models/Story.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ export async function seedDatabase() {
     Chat.deleteMany({}),
     Message.deleteMany({}),
     CallLog.deleteMany({}),
+    Story.deleteMany({}),
   ]);
 
   const defaultPassword = await bcrypt.hash('password123', 10);
@@ -180,6 +182,47 @@ export async function seedDatabase() {
       direction: 'missed',
       roomName: 'room-audio-103',
       createdAt: new Date(Date.now() - 48 * 3600 * 1000),
+    },
+  ]);
+
+  console.log('[Seed] Inserting sample 24-hour stories...');
+  const expires24h = new Date(Date.now() + 24 * 3600 * 1000);
+  await Story.insertMany([
+    {
+      userId: emma._id,
+      mediaUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80',
+      mediaType: 'image',
+      caption: 'Catching the sunset breeze! 🌅🌊',
+      viewers: [],
+      createdAt: new Date(Date.now() - 2 * 3600 * 1000),
+      expiresAt: expires24h,
+    },
+    {
+      userId: me._id,
+      mediaUrl: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800&auto=format&fit=crop&q=80',
+      mediaType: 'image',
+      caption: 'Weekend vibes with my best bud 🐶✨',
+      viewers: [],
+      createdAt: new Date(Date.now() - 3 * 3600 * 1000),
+      expiresAt: expires24h,
+    },
+    {
+      userId: mia._id,
+      mediaUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=80',
+      mediaType: 'image',
+      caption: 'New React Native feature shipping today 🚀💻',
+      viewers: [],
+      createdAt: new Date(Date.now() - 5 * 3600 * 1000),
+      expiresAt: expires24h,
+    },
+    {
+      userId: oliver._id,
+      mediaUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&auto=format&fit=crop&q=80',
+      mediaType: 'image',
+      caption: 'High in the alpine trails! 🏔️🌲',
+      viewers: [],
+      createdAt: new Date(Date.now() - 6 * 3600 * 1000),
+      expiresAt: expires24h,
     },
   ]);
 

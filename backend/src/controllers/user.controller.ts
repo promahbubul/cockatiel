@@ -75,6 +75,23 @@ export async function getUserById(request: FastifyRequest, reply: FastifyReply) 
   });
 }
 
+export async function updatePushToken(request: FastifyRequest, reply: FastifyReply) {
+  const currentUserId = (request as any).user?.userId;
+  const { pushToken } = (request.body as any) || {};
+
+  if (!currentUserId) {
+    return reply.status(401).send({ error: 'Unauthorized' });
+  }
+
+  await User.findByIdAndUpdate(currentUserId, { pushToken: pushToken || null });
+  console.log(`📱 [User] Updated push token for user ${currentUserId}`);
+
+  return reply.send({
+    success: true,
+    message: 'Push token updated successfully',
+  });
+}
+
 export async function updateSettings(request: FastifyRequest, reply: FastifyReply) {
   const currentUserId = (request as any).user?.userId;
   const user = await User.findById(currentUserId);

@@ -134,6 +134,11 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
+    savePushToken: (pushToken: string) =>
+      request<{ success: boolean; message: string }>('/users/push-token', {
+        method: 'POST',
+        body: JSON.stringify({ pushToken }),
+      }),
   },
 
   // Chats

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api, setAuthToken, getAuthToken } from '../services/api';
 import { socketService } from '../services/socket';
+import { registerForPushNotificationsAsync } from '../services/pushNotification';
 import { CURRENT_USER } from '../constants/mockData';
 
 export interface UserProfile {
@@ -64,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (res.success && res.user) {
             setUser(res.user);
             socketService.connect(res.user.id);
+            registerForPushNotificationsAsync().catch(() => {});
             setIsLoading(false);
             return;
           } else {
@@ -95,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(res.token);
         setUser(res.user);
         socketService.connect(res.user.id);
+        registerForPushNotificationsAsync().catch(() => {});
         return { success: true };
       }
       return { success: false, error: 'Login failed' };
@@ -129,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(res.token);
         setUser(res.user);
         socketService.connect(res.user.id);
+        registerForPushNotificationsAsync().catch(() => {});
         return { success: true };
       }
       return { success: false, error: 'Verification failed' };
