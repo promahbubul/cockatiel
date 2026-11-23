@@ -66,44 +66,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             socketService.connect(res.user.id);
             setIsLoading(false);
             return;
+          } else {
+            // Token expired or invalid
+            await setAuthToken(null);
+            setToken(null);
+            setUser(null);
           }
-        }
-
-        // Auto demo login for seamless local development
-        try {
-          const loginRes = await api.auth.login({
-            email: 'alex@cockatiel.app',
-            password: 'password123',
-          });
-          if (loginRes.success && loginRes.token) {
-            await setAuthToken(loginRes.token);
-            setToken(loginRes.token);
-            setUser(loginRes.user);
-            socketService.connect(loginRes.user.id);
-            setIsLoading(false);
-            return;
-          }
-        } catch {
-          // Fallback to offline mock user
-          setUser({
-            id: CURRENT_USER.id,
-            email: CURRENT_USER.email,
-            displayName: CURRENT_USER.name,
-            avatarUrl: CURRENT_USER.avatar,
-            about: CURRENT_USER.about || '',
-            isOnline: true,
-          });
+        } else {
+          setUser(null);
         }
       } catch (err) {
-        console.warn('[AuthContext] Auth init fallback to mock user', err);
-        setUser({
-          id: CURRENT_USER.id,
-          email: CURRENT_USER.email,
-          displayName: CURRENT_USER.name,
-          avatarUrl: CURRENT_USER.avatar,
-          about: CURRENT_USER.about || '',
-          isOnline: true,
-        });
+        console.warn('[AuthContext] Auth init check failed:', err);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }

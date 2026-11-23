@@ -51,10 +51,32 @@ export default function LoginScreen() {
     }
   };
 
-  const handleFillDemo = () => {
-    setEmail('alex@cockatiel.app');
+  const DEMO_ACCOUNTS = [
+    { name: 'Alex Johnson', email: 'alex@cockatiel.app', badge: '👤 Main' },
+    { name: 'Emma Watson', email: 'emma@cockatiel.app', badge: '👩 Active' },
+    { name: 'Oliver Smith', email: 'oliver@cockatiel.app', badge: '👨 Active' },
+    { name: 'Lucas Chen', email: 'lucas@cockatiel.app', badge: '👦 Producer' },
+    { name: 'Mia Wong', email: 'mia@cockatiel.app', badge: '👧 Dev' },
+  ];
+
+  const handleQuickLogin = async (demoEmail: string) => {
+    setEmail(demoEmail);
     setPassword('password123');
     setErrorMessage('');
+    setLoading(true);
+
+    const result = await login(demoEmail, 'password123');
+    setLoading(false);
+
+    if (result.success) {
+      router.replace('/(tabs)');
+    } else {
+      setErrorMessage(result.error || 'Failed to login with demo account');
+    }
+  };
+
+  const handleFillDemo = () => {
+    handleQuickLogin('alex@cockatiel.app');
   };
 
   const canSubmit = isValidEmail(email) && password.length >= 1 && !loading;
@@ -176,13 +198,30 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Quick Demo Credentials Card */}
-            <TouchableOpacity style={styles.demoBox} onPress={handleFillDemo} activeOpacity={0.8}>
-              <Text style={styles.demoText}>
-                ⚡ Click here to auto-fill demo credentials:
-              </Text>
-              <Text style={styles.demoEmail}>alex@cockatiel.app / password123</Text>
-            </TouchableOpacity>
+            {/* Quick Demo One-Click Login Accounts */}
+            <View style={styles.demoSection}>
+              <Text style={styles.demoSectionTitle}>⚡ One-Click Demo Login (Select Account):</Text>
+              <View style={styles.demoGrid}>
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <TouchableOpacity
+                    key={acc.email}
+                    style={[
+                      styles.demoAccountChip,
+                      email === acc.email && styles.demoAccountChipActive,
+                    ]}
+                    onPress={() => handleQuickLogin(acc.email)}
+                    disabled={loading}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.demoAccountBadge}>{acc.badge}</Text>
+                    <View style={styles.demoAccountInfo}>
+                      <Text style={styles.demoAccountName}>{acc.name}</Text>
+                      <Text style={styles.demoAccountEmail}>{acc.email}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
         </ScrollView>
 
@@ -307,6 +346,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  demoSection: {
+    marginTop: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  demoSectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4B5563',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  demoGrid: {
+    gap: 8,
+  },
+  demoAccountChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  demoAccountChipActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(249, 115, 22, 0.06)',
+  },
+  demoAccountBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginRight: 10,
+  },
+  demoAccountInfo: {
+    flex: 1,
+  },
+  demoAccountName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  demoAccountEmail: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 1,
   },
   demoBox: {
     backgroundColor: '#FEF3C7',

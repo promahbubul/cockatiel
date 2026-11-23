@@ -7,6 +7,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -24,15 +25,16 @@ import { Chat } from '../../src/types';
 export default function ChatsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [chats, setChats] = useState<Chat[]>(MOCK_CHATS);
+  const [chats, setChats] = useState<Chat[]>([]);
   const [activeContacts, setActiveContacts] = useState<any[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchChats = async () => {
     try {
       const res = await api.chats.getChats();
-      if (res.success && res.chats && res.chats.length > 0) {
+      if (res.success && res.chats) {
         const formatted: Chat[] = res.chats.map((c: any) => ({
           id: c.id,
           name: c.title || 'Chat',
@@ -49,7 +51,10 @@ export default function ChatsScreen() {
         chatCache.saveChatList(formatted);
       }
     } catch {
-      // Keep existing/mock chats if backend is still initializing
+      // If error, fall back to mock
+      if (chats.length === 0) setChats(MOCK_CHATS);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -225,9 +230,16 @@ export default function ChatsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No conversations found</Text>
-          </View>
+          isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Loading conversations...</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No conversations found</Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -298,5 +310,16 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     color: COLORS.textSecondary,
+  },
+  loadingContainer: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    marginTop: 12,
   },
 });

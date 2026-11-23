@@ -1,10 +1,16 @@
 import { io, Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
 
-const SOCKET_URL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:5000'
-    : 'http://localhost:5000';
+const getSocketUrl = () => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname || 'localhost';
+    return `http://${hostname}:5000`;
+  }
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:5000';
+  }
+  return 'http://localhost:5000';
+};
 
 class SocketService {
   private socket: Socket | null = null;
@@ -17,7 +23,7 @@ class SocketService {
     }
 
     this.currentUserId = userId;
-    this.socket = io(SOCKET_URL, {
+    this.socket = io(getSocketUrl(), {
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,

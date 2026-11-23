@@ -56,7 +56,8 @@ export default function ConversationScreen() {
   const chatId = String(id || 'chat_1');
   const { user } = useAuth();
 
-  const [messages, setMessages] = useState<Message[]>(MOCK_CONVERSATION_EMMA);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [chatInfo, setChatInfo] = useState<{
     title: string;
     avatarUrl: string;
@@ -186,6 +187,9 @@ export default function ConversationScreen() {
         }
       } catch {
         // Fallback to mock conversation
+        if (messages.length === 0) setMessages(MOCK_CONVERSATION_EMMA);
+      } finally {
+        setIsLoadingMessages(false);
       }
     };
 
@@ -1082,7 +1086,12 @@ export default function ConversationScreen() {
           contentContainerStyle={styles.messageListContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            isSearchOpen && searchQuery.trim() ? (
+            isLoadingMessages ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Loading messages...</Text>
+              </View>
+            ) : isSearchOpen && searchQuery.trim() ? (
               <View style={styles.emptySearchBox}>
                 <Search size={32} color={COLORS.textSecondary} style={{ marginBottom: 8 }} />
                 <Text style={styles.emptySearchTitle}>No messages found</Text>
@@ -2102,6 +2111,17 @@ const styles = StyleSheet.create({
   },
   forwardEmptyText: {
     fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS.textSecondary,
   },
 });

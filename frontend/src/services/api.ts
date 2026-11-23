@@ -1,11 +1,19 @@
 import { Platform } from 'react-native';
 import { storage } from './storage';
 
-// Base API URL configuration
-export const API_BASE_URL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:5000/api'
-    : 'http://localhost:5000/api';
+// Dynamic Base API URL configuration (works on localhost, LAN IP, and mobile)
+export const getApiBaseUrl = () => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname || 'localhost';
+    return `http://${hostname}:5000/api`;
+  }
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:5000/api';
+  }
+  return 'http://localhost:5000/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 const TOKEN_KEY = 'cockatiel_auth_token';
 
@@ -37,7 +45,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${getApiBaseUrl()}${endpoint}`;
   const response = await fetch(url, {
     ...options,
     headers,

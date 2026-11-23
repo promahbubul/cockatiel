@@ -1,10 +1,26 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import { Tabs } from 'expo-router';
+import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import { Tabs, Redirect } from 'expo-router';
 import { MessageCircle, Users, Phone, User as UserIcon } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function TabLayout() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading Cockatiel...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return <Redirect href="/auth/login" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -91,5 +107,17 @@ const styles = StyleSheet.create({
     height: 3.5,
     backgroundColor: COLORS.accentGold,
     borderRadius: 2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 14,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
   },
 });

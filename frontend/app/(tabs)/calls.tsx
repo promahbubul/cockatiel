@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -22,13 +23,14 @@ export default function CallsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'missed'>('all');
-  const [calls, setCalls] = useState<CallLogItem[]>(MOCK_CALLS);
+  const [calls, setCalls] = useState<CallLogItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchCalls = async () => {
     try {
       const res = await api.calls.getCalls();
-      if (res.success && res.calls && res.calls.length > 0) {
+      if (res.success && res.calls) {
         const mapped: CallLogItem[] = res.calls.map((c: any) => ({
           id: c.id,
           userId: c.otherUser?.id,
@@ -45,6 +47,9 @@ export default function CallsScreen() {
       }
     } catch {
       // Keep mock calls if backend is starting
+      if (calls.length === 0) setCalls(MOCK_CALLS);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -167,9 +172,16 @@ export default function CallsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No recent calls</Text>
-          </View>
+          isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Loading call history...</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No recent calls</Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -250,5 +262,16 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     color: COLORS.textSecondary,
+  },
+  loadingContainer: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    marginTop: 12,
   },
 });
